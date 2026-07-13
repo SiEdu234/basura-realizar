@@ -20,10 +20,12 @@
       <div class="card-header">
         <h3 class="card-title"><i class="fas fa-database"></i> Archivos de preguntas</h3>
         <div class="card-tools">
+          {% if user.is_staff %}
           <label class="btn btn-primary btn-sm mb-0">
             <i class="fas fa-upload"></i> Subir JSON/XML
             <input type="file" id="fileUpload" accept=".json,.xml" multiple hidden data-url="{% url 'study:upload_file' subject.id %}">
           </label>
+          {% endif %}
         </div>
       </div>
       <div class="card-body p-0">

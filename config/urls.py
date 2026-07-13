@@ -13,6 +13,7 @@ def render_template(request, template_name):
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('accounts/', include('django.contrib.auth.urls')),
     path('study/', include('study.urls')),
     path('', admin_dashboard, name='home'),
     path('<path:template_name>', render_template, name='render_template'),

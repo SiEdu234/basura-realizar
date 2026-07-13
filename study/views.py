@@ -3,10 +3,14 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from .models import Subject, File
 from django.views.decorators.csrf import csrf_exempt
-
 from django.contrib.auth.models import User
+from django.contrib.auth.decorators import login_required
 
+@login_required
 def admin_dashboard(request):
+    if not request.user.is_staff:
+        return redirect('study:dashboard')
+
     total_subjects = Subject.objects.count()
     total_files = File.objects.count()
     total_users = User.objects.count()
@@ -26,24 +30,34 @@ def admin_dashboard(request):
     }
     return render(request, 'home.html', context)
 
+@login_required
 def dashboard(request):
     subjects = Subject.objects.all().order_by('-created_at')
     return render(request, 'study/dashboard.html', {'subjects': subjects})
 
+@login_required
 def create_subject(request):
+    if not request.user.is_staff:
+        return redirect('study:dashboard')
+
     if request.method == 'POST':
         name = request.POST.get('name')
         if name:
             Subject.objects.create(name=name)
     return redirect('study:dashboard')
 
+@login_required
 def subject_detail(request, subject_id):
     subject = get_object_or_404(Subject, id=subject_id)
     files = subject.files.all().order_by('-created_at')
     return render(request, 'study/subject_detail.html', {'subject': subject, 'files': files})
 
 @csrf_exempt
+@login_required
 def upload_file(request, subject_id):
+    if not request.user.is_staff:
+        return JsonResponse({'success': False, 'error': 'No tienes permisos de administrador'})
+        
     subject = get_object_or_404(Subject, id=subject_id)
     if request.method == 'POST':
         if 'file' in request.FILES:
@@ -57,6 +71,7 @@ def upload_file(request, subject_id):
                 return JsonResponse({'success': False, 'error': str(e)})
     return JsonResponse({'success': False, 'error': 'Invalid request'})
 
+@login_required
 def quiz_runner(request, subject_id):
     subject = get_object_or_404(Subject, id=subject_id)
     # Passed via query parameters ?files=id1,id2

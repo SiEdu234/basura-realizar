@@ -7,9 +7,9 @@
 {% block content %}
 <div class="row mb-3">
   <div class="col-12">
-    <button class="btn btn-primary" data-toggle="modal" data-target="#createSubjectModal">
+    {% if user.is_staff %}<button class="btn btn-primary" data-toggle="modal" data-target="#createSubjectModal">
       <i class="fas fa-plus-circle"></i> Nueva materia
-    </button>
+    </button>{% endif %}
   </div>
 </div>
 
