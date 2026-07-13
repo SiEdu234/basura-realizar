@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+{% block page_title %}Dashboard - Materias{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+  <div class="col-12">
+    <button class="btn btn-primary" data-toggle="modal" data-target="#createSubjectModal">
+      <i class="fas fa-plus-circle"></i> Nueva materia
+    </button>
+  </div>
+</div>
+
+<div class="row">
+  {% for subject in subjects %}
+  <div class="col-lg-3 col-6">
+    <div class="small-box bg-info">
+      <div class="inner">
+        <h4>{{ subject.name }}</h4>
+        <p>{{ subject.files.count }} Archivos</p>
+      </div>
+      <div class="icon">
+        <i class="fas fa-book"></i>
+      </div>
+      <a href="{% url 'study:subject_detail' subject.id %}" class="small-box-footer">
+        Ver archivos <i class="fas fa-arrow-circle-right"></i>
+      </a>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12">
+    <div class="alert alert-info">
+      No hay materias creadas. Crea una para empezar a estudiar.
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Modal para nueva materia -->
+<div class="modal fade" id="createSubjectModal" tabindex="-1" role="dialog" aria-labelledby="createSubjectModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <form action="{% url 'study:create_subject' %}" method="post">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title" id="createSubjectModalLabel">Crear Nueva Materia</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="subjectName">Nombre de la materia</label>
+            <input type="text" class="form-control" id="subjectName" name="name" required placeholder="Ej. Biología">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Crear</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

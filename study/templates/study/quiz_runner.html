@@ -1,0 +1,353 @@
+{% extends "base.html" %}
+
+{% block title %}Sesión - {{ subject.name }}{% endblock %}
+{% block page_title %}Sesión de Estudio{% endblock %}
+
+{% block extra_css %}
+<!-- Marked & Highlight.js for Code Support -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+<style>
+  .q-card-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #dee2e6; padding-bottom: 10px; margin-bottom: 15px; }
+  .q-badge { background: #007bff; color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.8rem; }
+  .q-points { font-weight: bold; color: #28a745; }
+  .opt-box { border: 1px solid #dee2e6; padding: 15px; margin-bottom: 10px; border-radius: 5px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; }
+  .opt-box:hover { background: #f8f9fa; }
+  .opt-box.selected { border-color: #007bff; background: #e9ecef; }
+  .opt-box.correct { border-color: #28a745; background: #d4edda; }
+  .opt-box.incorrect { border-color: #dc3545; background: #f8d7da; }
+  .opt-idx { font-weight: bold; margin-right: 15px; background: #6c757d; color: white; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+  .feedback-alert { padding: 15px; border-radius: 5px; margin-top: 15px; display: flex; align-items: center; }
+  .feedback-alert.correct { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+  .feedback-alert.incorrect { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+  .study-item { border: 1px solid #dee2e6; padding: 15px; margin-bottom: 15px; border-radius: 5px; }
+  .study-badge { background: #17a2b8; color: white; padding: 3px 8px; border-radius: 4px; display: inline-block; margin-bottom: 10px; font-size: 0.8rem; }
+  .hidden { display: none !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-12">
+    <div class="card" id="quizCard">
+      <div class="card-header">
+        <h3 class="card-title">Progreso <span id="quiz-progress-text">0 / 0</span></h3>
+        <div class="card-tools">
+          <a href="{% url 'study:subject_detail' subject.id %}" class="btn btn-danger btn-sm" id="btn-exit-quiz">
+            <i class="fas fa-times"></i> Salir
+          </a>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="progress mb-3">
+          <div class="progress-bar bg-primary" id="progress-bar" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+        
+        <div id="question-container">
+          <!-- Injected by JS -->
+        </div>
+        
+        <div id="results-view" class="hidden text-center mt-5">
+          <h2 class="text-success mb-3">Sesión Completada</h2>
+          <h1 class="display-4 font-weight-bold" id="result-percentage">0%</h1>
+          <p class="lead" id="result-details"></p>
+          <div class="mt-4">
+            <button class="btn btn-primary btn-lg mr-2" onclick="startSession()"><i class="fas fa-redo"></i> Reintentar</button>
+            <a href="{% url 'study:subject_detail' subject.id %}" class="btn btn-secondary btn-lg"><i class="fas fa-arrow-left"></i> Volver</a>
+          </div>
+        </div>
+      </div>
+      <div class="card-footer" id="hud-bottom">
+        <button id="submit-btn" class="btn btn-primary float-right">Comprobar</button>
+        <button id="next-btn" class="btn btn-success float-right hidden">Siguiente <i class="fas fa-arrow-right"></i></button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+{{ files_data|json_script:"files-data" }}
+<script>
+  const RAW_FILES = JSON.parse(document.getElementById('files-data').textContent);
+  const SESSION_COUNT = "{{ session_count }}";
+  const SESSION_MODE = "{{ session_mode }}";
+  
+  marked.use({ breaks: true, gfm: true });
+  
+  function parseMd(text) {
+      if (!text) return '';
+      const processed = text.replace(/\\n/g, '\n');
+      return marked.parse(processed);
+  }
+  function parseMdInline(text) {
+      if (!text) return '';
+      const processed = text.replace(/\\n/g, '\n');
+      return marked.parseInline(processed);
+  }
+
+  const state = {
+      sessionQuestions: [],
+      currentQuestionIndex: 0,
+      score: 0,
+      maxScore: 0,
+      userAnswers: [],
+      isAnswerSubmitted: false
+  };
+
+  const els = {
+      questionContainer: document.getElementById('question-container'),
+      progressBar: document.getElementById('progress-bar'),
+      progressText: document.getElementById('quiz-progress-text'),
+      submitBtn: document.getElementById('submit-btn'),
+      nextBtn: document.getElementById('next-btn'),
+      hudBottom: document.getElementById('hud-bottom'),
+      resultsView: document.getElementById('results-view'),
+      resultPercentage: document.getElementById('result-percentage'),
+      resultDetails: document.getElementById('result-details')
+  };
+
+  function randomIndex(maxInclusive) {
+      if (window.crypto?.getRandomValues) {
+          const range = maxInclusive + 1;
+          const max = 0xFFFFFFFF - (0xFFFFFFFF % range);
+          const buffer = new Uint32Array(1);
+          do { window.crypto.getRandomValues(buffer); } while (buffer[0] >= max);
+          return buffer[0] % range;
+      }
+      return Math.floor(Math.random() * (maxInclusive + 1));
+  }
+
+  function shuffleArray(arr) {
+      const result = [...arr];
+      for (let i = result.length - 1; i > 0; i--) {
+          const j = randomIndex(i);
+          [result[i], result[j]] = [result[j], result[i]];
+      }
+      return result;
+  }
+
+  function cloneQuestion(q) {
+      return { ...q, options: Array.isArray(q.options) ? q.options.map(o => ({...o})) : [] };
+  }
+
+  function startSession() {
+      els.resultsView.classList.add('hidden');
+      els.questionContainer.classList.remove('hidden');
+      els.hudBottom.classList.remove('hidden');
+      
+      let pool = [];
+      RAW_FILES.forEach(f => {
+          if (Array.isArray(f.data)) {
+              pool = pool.concat(f.data.map(cloneQuestion));
+          } else if (f.data && Array.isArray(f.data.questions)) {
+              pool = pool.concat(f.data.questions.map(cloneQuestion));
+          }
+      });
+
+      if (pool.length === 0) {
+          els.questionContainer.innerHTML = '<div class="alert alert-warning">No hay preguntas válidas en los archivos seleccionados.</div>';
+          els.hudBottom.classList.add('hidden');
+          return;
+      }
+
+      pool = shuffleArray(pool);
+
+      if (SESSION_COUNT !== 'all') {
+          const limit = parseInt(SESSION_COUNT);
+          if (limit < pool.length) pool = pool.slice(0, limit);
+      }
+
+      pool.forEach(q => { if (q.options) q.options = shuffleArray(q.options); });
+
+      state.sessionQuestions = pool;
+      state.currentQuestionIndex = 0;
+      state.score = 0;
+      state.maxScore = pool.reduce((acc, q) => acc + (q.points || 1), 0);
+      state.userAnswers = [];
+      state.isAnswerSubmitted = false;
+
+      if (SESSION_MODE === 'test') renderQuestion();
+      else renderStudyMode();
+  }
+
+  function renderQuestion() {
+      const q = state.sessionQuestions[state.currentQuestionIndex];
+      const progress = (state.currentQuestionIndex / state.sessionQuestions.length) * 100;
+      
+      els.progressBar.style.width = `${progress}%`;
+      els.progressText.textContent = `${state.currentQuestionIndex + 1} / ${state.sessionQuestions.length}`;
+
+      els.submitBtn.classList.remove('hidden');
+      els.nextBtn.classList.add('hidden');
+
+      const typeLabels = { 'single': 'ÚNICA', 'multiple': 'MÚLTIPLE', 'boolean': 'BINARIO' };
+      const pts = q.points || 1;
+      let questionTextHtml = parseMd(q.text);
+      
+      let aiNoteHtml = '';
+      if (q.isCode) {
+          aiNoteHtml = '<div class="text-info mb-2"><i><i class="fas fa-robot"></i> IA: Formateado como código.</i></div>';
+          if (!q.text.trim().startsWith('```')) questionTextHtml = parseMd('```\n' + q.text + '\n```');
+      }
+
+      els.questionContainer.innerHTML = `
+          <div class="q-card-header">
+              <div>
+                  <span class="q-badge">${typeLabels[q.type] || 'Pregunta'}</span>
+              </div>
+              <div class="q-points">${pts} PTS</div>
+          </div>
+          ${aiNoteHtml}
+          <div class="q-text mb-4" style="font-size: 1.1rem;">${questionTextHtml}</div>
+          <div class="opts-grid row">
+              ${q.options.map((opt, i) => `
+                  <div class="${q.options.length <= 2 ? 'col-md-6' : 'col-12'}">
+                    <div class="opt-box" data-id="${opt.id}">
+                        <div class="opt-idx">${String.fromCharCode(65 + i)}</div>
+                        <div class="opt-txt">${parseMdInline(opt.text)}</div>
+                    </div>
+                  </div>
+              `).join('')}
+          </div>
+          <div id="feedback-area"></div>
+      `;
+
+      els.questionContainer.querySelectorAll('pre code').forEach(hljs.highlightElement);
+      els.questionContainer.querySelectorAll('.opt-box').forEach(item => {
+          item.addEventListener('click', () => handleOptionClick(item, q.type));
+      });
+  }
+
+  function handleOptionClick(item, type) {
+      if (els.submitBtn.classList.contains('hidden')) return;
+      const id = item.dataset.id;
+      if (type === 'single' || type === 'boolean') {
+          els.questionContainer.querySelectorAll('.opt-box').forEach(el => el.classList.remove('selected'));
+          state.userAnswers = [id];
+          item.classList.add('selected');
+      } else if (type === 'multiple') {
+          if (state.userAnswers.includes(id)) {
+              state.userAnswers = state.userAnswers.filter(a => a !== id);
+              item.classList.remove('selected');
+          } else {
+              state.userAnswers.push(id);
+              item.classList.add('selected');
+          }
+      }
+  }
+
+  function checkAnswer() {
+      const q = state.sessionQuestions[state.currentQuestionIndex];
+      if (state.userAnswers.length === 0) {
+          alert('Por favor selecciona una respuesta');
+          return;
+      }
+
+      const correctIds = q.options.filter(o => o.isCorrect).map(o => o.id);
+      let isCorrect = false;
+      if (correctIds.length === 0) isCorrect = state.userAnswers.length === 0;
+      else if (state.userAnswers.length === correctIds.length) {
+          isCorrect = state.userAnswers.every(ans => correctIds.includes(ans));
+      }
+
+      if (!state.isAnswerSubmitted) {
+          if (isCorrect) state.score += (q.points || 1);
+          state.isAnswerSubmitted = true;
+      }
+
+      els.questionContainer.querySelectorAll('.opt-box').forEach(item => {
+          const id = item.dataset.id;
+          const isSelected = state.userAnswers.includes(id);
+          const isReal = correctIds.includes(id);
+
+          if (isReal) item.classList.add('correct');
+          else if (isSelected) item.classList.add('incorrect');
+          item.style.pointerEvents = 'none';
+      });
+
+      const fbArea = document.getElementById('feedback-area');
+      fbArea.innerHTML = `
+          <div class="feedback-alert ${isCorrect ? 'correct' : 'incorrect'}">
+              <div class="mr-3" style="font-size: 2rem;"><i class="fas ${isCorrect ? 'fa-check-circle' : 'fa-times-circle'}"></i></div>
+              <div>
+                  <h5 class="mb-0"><strong>${isCorrect ? '¡CORRECTO!' : 'INCORRECTO'}</strong></h5>
+                  ${q.feedback ? `<div class="mt-2">${parseMd(q.feedback)}</div>` : ''}
+              </div>
+          </div>
+      `;
+      fbArea.querySelectorAll('pre code').forEach(hljs.highlightElement);
+
+      els.submitBtn.classList.add('hidden');
+      els.nextBtn.classList.remove('hidden');
+  }
+
+  function nextQuestion() {
+      state.currentQuestionIndex++;
+      state.isAnswerSubmitted = false;
+      state.userAnswers = [];
+      if (state.currentQuestionIndex < state.sessionQuestions.length) {
+          renderQuestion();
+      } else {
+          showResults();
+      }
+  }
+
+  function renderStudyMode() {
+      els.progressBar.style.width = '100%';
+      els.progressText.textContent = 'Modo Repaso';
+      els.hudBottom.classList.add('hidden');
+
+      let html = '<div>';
+      state.sessionQuestions.forEach((q, i) => {
+          const correctOpts = q.options.filter(o => o.isCorrect);
+          const correctText = correctOpts.length > 0 
+              ? correctOpts.map(o => `&bull; ${parseMdInline(o.text)}`).join('<br>') 
+              : "N/A";
+
+          let questionTextHtml = parseMd(q.text);
+          if (q.isCode && !q.text.trim().startsWith('```')) {
+              questionTextHtml = parseMd('```\n' + q.text + '\n```');
+          }
+
+          html += `
+              <div class="study-item">
+                  <div class="study-badge">${q.type} // ${q.points || 1} PTS</div>
+                  <div class="mb-3" style="font-size: 1.1rem;"><strong>${i + 1}.</strong> ${questionTextHtml}</div>
+                  <div class="bg-light p-3 border-left border-success border-width-3 mb-2">
+                      <span class="text-success font-weight-bold">Respuesta correcta:</span><br>
+                      ${correctText}
+                  </div>
+                  ${q.feedback ? `<div class="text-muted"><i class="fas fa-info-circle"></i> ${parseMd(q.feedback)}</div>` : ''}
+              </div>`;
+      });
+      html += '</div>';
+
+      els.questionContainer.innerHTML = html;
+      els.questionContainer.querySelectorAll('pre code').forEach(hljs.highlightElement);
+  }
+
+  function showResults() {
+      els.questionContainer.classList.add('hidden');
+      els.hudBottom.classList.add('hidden');
+      els.resultsView.classList.remove('hidden');
+      
+      const max = state.maxScore > 0 ? state.maxScore : 1;
+      const pct = Math.round((state.score / max) * 100);
+      
+      els.resultPercentage.textContent = `${pct}%`;
+      els.resultPercentage.className = `display-4 font-weight-bold ${pct >= 70 ? 'text-success' : (pct >= 40 ? 'text-warning' : 'text-danger')}`;
+      els.resultDetails.innerHTML = `Obtuviste <strong>${state.score}</strong> de <strong>${state.maxScore}</strong> puntos posibles.`;
+  }
+
+  // Bind events
+  els.submitBtn.addEventListener('click', checkAnswer);
+  els.nextBtn.addEventListener('click', nextQuestion);
+
+  // Initialize
+  document.addEventListener('DOMContentLoaded', () => {
+      startSession();
+  });
+</script>
+{% endblock %}

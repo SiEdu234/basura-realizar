@@ -10,7 +10,7 @@ SECRET_KEY = 'django-insecure-dummy-key-for-now-please-change-in-production'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['146.190.67.222', 'dwa.simeduaproyectos.xyz', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['146.190.67.222', 'daw.simeduaproyectos.xyz', 'localhost', '127.0.0.1']
 
 # Application definition
 
@@ -21,6 +21,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'study',
 ]
 
 MIDDLEWARE = [
