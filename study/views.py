@@ -153,19 +153,13 @@ def quiz_runner(request, subject_id):
         else:
             selected_files = subject.files.all()
             
-        all_questions = []
-        for f in selected_files:
-            data = f.data
-            if isinstance(data, list):
-                all_questions.extend(data)
-            elif isinstance(data, dict) and 'questions' in data:
-                all_questions.extend(data['questions'])
+        files_data = [{'data': f.data} for f in selected_files]
                 
         context = {
             'subject': subject,
-            'questions': all_questions,
-            'mode': mode,
-            'count': count
+            'files_data': files_data,
+            'session_mode': mode,
+            'session_count': count
         }
         return render(request, 'study/quiz_runner.html', context)
     except Exception as e:
