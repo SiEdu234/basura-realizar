@@ -91,10 +91,10 @@
           <div class="col-12">
             <div class="card">
               <div class="card-header border-0">
-                <h3 class="card-title">Bienvenido al Sistema</h3>
+                <h3 class="card-title"><i class="fas fa-chart-pie mr-1"></i> Estadísticas Reales (Archivos por Materia)</h3>
               </div>
               <div class="card-body">
-                <p>El panel de control está conectado a la base de datos real. Puedes gestionar tus materias y archivos desde la sección correspondiente en el menú lateral.</p>
+                <canvas id="myChart" style="min-height: 300px; height: 300px; max-height: 300px; max-width: 100%;"></canvas>
               </div>
             </div>
           </div>
@@ -103,7 +103,52 @@
       </div><!-- /.container-fluid -->
     </section>
     <!-- /.content -->
-  </div>
   
-  
+{% endblock %}
+
+{% block extra_js %}
+<!-- ChartJS -->
+<script src="{% static 'plugins/chart.js/Chart.min.js' %}"></script>
+<script>
+  $(function () {
+    // Parse JSON from view
+    var labels = JSON.parse('{{ subjects_labels|escapejs }}');
+    var data = JSON.parse('{{ files_data|escapejs }}');
+
+    var areaChartData = {
+      labels  : labels,
+      datasets: [
+        {
+          label               : 'Archivos Subidos',
+          backgroundColor     : 'rgba(60,141,188,0.9)',
+          borderColor         : 'rgba(60,141,188,0.8)',
+          pointRadius          : false,
+          pointColor          : '#3b8bba',
+          pointStrokeColor    : 'rgba(60,141,188,1)',
+          pointHighlightFill  : '#fff',
+          pointHighlightStroke: 'rgba(60,141,188,1)',
+          data                : data
+        }
+      ]
+    }
+
+    //-------------
+    //- BAR CHART -
+    //-------------
+    var barChartCanvas = $('#myChart').get(0).getContext('2d')
+    var barChartData = $.extend(true, {}, areaChartData)
+
+    var barChartOptions = {
+      responsive              : true,
+      maintainAspectRatio     : false,
+      datasetFill             : false
+    }
+
+    new Chart(barChartCanvas, {
+      type: 'bar',
+      data: barChartData,
+      options: barChartOptions
+    })
+  })
+</script>
 {% endblock %}

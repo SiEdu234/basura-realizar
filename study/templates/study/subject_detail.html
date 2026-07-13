@@ -35,6 +35,9 @@
               <th style="width: 40px">Sel</th>
               <th>Nombre del archivo</th>
               <th>Fecha</th>
+              {% if user.is_staff %}
+              <th style="width: 60px">Acción</th>
+              {% endif %}
             </tr>
           </thead>
           <tbody id="fileList">
@@ -48,10 +51,20 @@
               </td>
               <td>{{ file.name }}</td>
               <td>{{ file.created_at|date:"d M Y" }}</td>
+              {% if user.is_staff %}
+              <td>
+                <form action="{% url 'study:delete_file' file.id %}" method="post" class="d-inline">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-xs btn-danger" onclick="return confirm('¿Seguro que deseas eliminar este archivo?');">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </form>
+              </td>
+              {% endif %}
             </tr>
             {% empty %}
             <tr>
-              <td colspan="3" class="text-center">No hay archivos para esta materia.</td>
+              <td colspan="4" class="text-center">No hay archivos para esta materia.</td>
             </tr>
             {% endfor %}
           </tbody>

@@ -1,10 +1,25 @@
+from django.shortcuts import render, get_object_or_404, redirect
+from django.http import JsonResponse, HttpResponseServerError
 import json
-from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse
 from .models import Subject, File
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth import login
+from django.contrib import messages
+
+def register_user(request):
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            messages.success(request, '¡Registro exitoso! Bienvenido al sistema.')
+            return redirect('study:dashboard')
+    else:
+        form = UserCreationForm()
+    return render(request, 'registration/register.html', {'form': form})
 
 @login_required
 def admin_dashboard(request):
@@ -16,6 +31,14 @@ def admin_dashboard(request):
     total_users = User.objects.count()
     
     total_questions = 0
+    # Collect data for charts
+    subjects_data = []
+    files_count_data = []
+    
+    for subject in Subject.objects.all():
+        subjects_data.append(subject.name)
+        files_count_data.append(subject.files.count())
+        
     for f in File.objects.all():
         if isinstance(f.data, list):
             total_questions += len(f.data)
@@ -26,7 +49,9 @@ def admin_dashboard(request):
         'total_subjects': total_subjects,
         'total_files': total_files,
         'total_users': total_users,
-        'total_questions': total_questions
+        'total_questions': total_questions,
+        'subjects_labels': json.dumps(subjects_data),
+        'files_data': json.dumps(files_count_data),
     }
     return render(request, 'home.html', context)
 
@@ -44,13 +69,42 @@ def create_subject(request):
         name = request.POST.get('name')
         if name:
             Subject.objects.create(name=name)
+            messages.success(request, 'Materia creada exitosamente.')
+    return redirect('study:dashboard')
+
+@login_required
+def edit_subject(request, subject_id):
+    if not request.user.is_staff:
+        return redirect('study:dashboard')
+        
+    subject = get_object_or_404(Subject, id=subject_id)
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        if name:
+            subject.name = name
+            subject.save()
+            messages.success(request, 'Materia actualizada.')
+    return redirect('study:dashboard')
+
+@login_required
+def delete_subject(request, subject_id):
+    if not request.user.is_staff:
+        return redirect('study:dashboard')
+        
+    subject = get_object_or_404(Subject, id=subject_id)
+    if request.method == 'POST':
+        subject.delete()
+        messages.success(request, 'Materia eliminada.')
     return redirect('study:dashboard')
 
 @login_required
 def subject_detail(request, subject_id):
-    subject = get_object_or_404(Subject, id=subject_id)
-    files = subject.files.all().order_by('-created_at')
-    return render(request, 'study/subject_detail.html', {'subject': subject, 'files': files})
+    try:
+        subject = get_object_or_404(Subject, id=subject_id)
+        files = subject.files.all().order_by('-created_at')
+        return render(request, 'study/subject_detail.html', {'subject': subject, 'files': files})
+    except Exception as e:
+        return render(request, 'study/error.html', {'error_message': str(e)})
 
 @csrf_exempt
 @login_required
@@ -72,25 +126,47 @@ def upload_file(request, subject_id):
     return JsonResponse({'success': False, 'error': 'Invalid request'})
 
 @login_required
-def quiz_runner(request, subject_id):
-    subject = get_object_or_404(Subject, id=subject_id)
-    # Passed via query parameters ?files=id1,id2
-    file_ids = request.GET.get('files', '')
-    if file_ids:
-        file_ids_list = file_ids.split(',')
-        files = subject.files.filter(id__in=file_ids_list)
-    else:
-        files = subject.files.all()
-    
-    # We pass the data directly to the template so JS can use it
-    files_data = []
-    for f in files:
-        files_data.append({'name': f.name, 'data': f.data})
+def delete_file(request, file_id):
+    if not request.user.is_staff:
+        return redirect('study:dashboard')
         
-    context = {
-        'subject': subject,
-        'files_data': files_data,
-        'session_count': request.GET.get('count', 'all'),
-        'session_mode': request.GET.get('mode', 'test'),
-    }
-    return render(request, 'study/quiz_runner.html', context)
+    file_obj = get_object_or_404(File, id=file_id)
+    subject_id = file_obj.subject.id
+    if request.method == 'POST':
+        file_obj.delete()
+        messages.success(request, 'Archivo eliminado.')
+    return redirect('study:subject_detail', subject_id=subject_id)
+
+@login_required
+def quiz_runner(request, subject_id):
+    try:
+        subject = get_object_or_404(Subject, id=subject_id)
+        # Passed via query parameters ?files=id1,id2
+        file_ids = request.GET.get('files', '')
+        mode = request.GET.get('mode', 'test')
+        count = request.GET.get('count', 'all')
+        
+        selected_files = []
+        if file_ids:
+            id_list = file_ids.split(',')
+            selected_files = File.objects.filter(id__in=id_list)
+        else:
+            selected_files = subject.files.all()
+            
+        all_questions = []
+        for f in selected_files:
+            data = f.data
+            if isinstance(data, list):
+                all_questions.extend(data)
+            elif isinstance(data, dict) and 'questions' in data:
+                all_questions.extend(data['questions'])
+                
+        context = {
+            'subject': subject,
+            'questions': all_questions,
+            'mode': mode,
+            'count': count
+        }
+        return render(request, 'study/quiz_runner.html', context)
+    except Exception as e:
+        return render(request, 'study/error.html', {'error_message': str(e)})

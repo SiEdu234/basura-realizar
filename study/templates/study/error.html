@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+  <div class="col-12">
+    <div class="alert alert-danger">
+      <h5><i class="icon fas fa-ban"></i> Error Inesperado</h5>
+      Ocurrió un error al cargar la información: {{ error_message }}
+    </div>
+    <a href="{% url 'study:dashboard' %}" class="btn btn-default">Volver al Dashboard</a>
+  </div>
+</div>
+{% endblock %}

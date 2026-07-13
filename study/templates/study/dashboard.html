@@ -27,6 +27,60 @@
       <a href="{% url 'study:subject_detail' subject.id %}" class="small-box-footer">
         Ver archivos <i class="fas fa-arrow-circle-right"></i>
       </a>
+      {% if user.is_staff %}
+      <div class="card-footer p-1 text-center bg-transparent">
+        <button class="btn btn-xs btn-light text-primary" data-toggle="modal" data-target="#editSubjectModal{{ subject.id }}"><i class="fas fa-edit"></i> Editar</button>
+        <button class="btn btn-xs btn-light text-danger" data-toggle="modal" data-target="#deleteSubjectModal{{ subject.id }}"><i class="fas fa-trash"></i> Borrar</button>
+      </div>
+
+      <!-- Modal Editar -->
+      <div class="modal fade" id="editSubjectModal{{ subject.id }}" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content text-left">
+            <form action="{% url 'study:edit_subject' subject.id %}" method="post">
+              {% csrf_token %}
+              <div class="modal-header">
+                <h5 class="modal-title">Editar Materia</h5>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+              </div>
+              <div class="modal-body">
+                <div class="form-group">
+                  <label>Nombre de la materia</label>
+                  <input type="text" class="form-control" name="name" value="{{ subject.name }}" required>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Eliminar -->
+      <div class="modal fade" id="deleteSubjectModal{{ subject.id }}" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content text-left">
+            <form action="{% url 'study:delete_subject' subject.id %}" method="post">
+              {% csrf_token %}
+              <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Eliminar Materia</h5>
+                <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+              </div>
+              <div class="modal-body">
+                <p>¿Estás seguro de que deseas eliminar la materia <strong>{{ subject.name }}</strong>?</p>
+                <p class="text-danger"><small>¡Esta acción también eliminará todos los archivos y preguntas asociados!</small></p>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-danger">Sí, Eliminar</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endif %}
     </div>
   </div>
   {% empty %}
