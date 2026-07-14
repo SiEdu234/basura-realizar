@@ -10,10 +10,13 @@
 <style>
   .img-container {
     max-height: 400px;
+    min-height: 200px;
     width: 100%;
     margin-bottom: 20px;
+    background-color: #f8f9fa;
   }
   .img-container img {
+    display: block;
     max-width: 100%;
   }
 </style>
@@ -101,14 +104,14 @@
     $input.on('change', function(e){
       var files = e.target.files;
       var done = function(url) {
-        $input.val('');
+        $input.val(''); // Limpiamos para poder volver a seleccionar la misma si queremos
         image.src = url;
         $modal.modal('show');
       };
 
       if (files && files.length > 0) {
         var file = files[0];
-        // Actualizar el label
+        // Actualizar el label visualmente
         $(this).next('.custom-file-label').addClass("selected").html(file.name);
         
         if (URL) {
@@ -123,18 +126,20 @@
       }
     });
 
-    // Inicializar Cropper cuando el Modal se muestre
+    // Inicializar Cropper cuando el Modal termine de mostrarse
     $modal.on('shown.bs.modal', function () {
       cropper = new Cropper(image, {
         aspectRatio: 1, // Cuadrado perfecto (1:1)
-        viewMode: 1,
+        viewMode: 2,    // Permite mover la imagen
         autoCropArea: 1,
+        responsive: true,
       });
     }).on('hidden.bs.modal', function () {
       if (cropper) {
         cropper.destroy();
         cropper = null;
       }
+      image.src = ''; // Limpiar la imagen para evitar bugs visuales
     });
 
     // Evento de Recortar y Guardar
@@ -151,6 +156,9 @@
         // Ponerla en el hidden input
         $('#avatar_base64').val(base64data);
         
+        // Quitar el required del input original porque lo mandamos por base64
+        $input.removeAttr('required');
+
         // Esconder el modal y hacer Submit
         $modal.modal('hide');
         $('#avatarForm').submit();
