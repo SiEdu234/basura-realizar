@@ -5,20 +5,19 @@
 {% block page_title %}Mi Perfil{% endblock %}
 
 {% block extra_head %}
-<!-- Cropper.js CSS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
 <style>
+  /* El modal de Cropper necesita que el contenedor defina el tamaño de trabajo */
   .img-container {
     width: 100%;
-    height: 60vh; /* Responsive fixed height */
+    height: 60vh; /* Altura relativa a la pantalla */
     min-height: 300px;
     background-color: #000;
-    overflow: hidden;
   }
+  /* Cropper.js necesita estrictamente que la imagen no tenga un alto máximo para hacer sus cálculos inicialmente */
   .img-container img {
     display: block;
-    max-width: 100%;
-    max-height: 100%;
+    max-width: 100%; 
   }
 </style>
 {% endblock %}
@@ -46,7 +45,6 @@
 
         <form id="avatarForm" action="{% url 'study:profile_view' %}" method="post" enctype="multipart/form-data" class="mt-4">
           {% csrf_token %}
-          <!-- Hidden input para mandar la imagen recortada en Base64 -->
           <input type="hidden" name="avatar_base64" id="avatar_base64">
           
           <div class="form-group">
@@ -60,14 +58,12 @@
           </div>
         </form>
       </div>
-      <!-- /.card-body -->
     </div>
   </div>
 </div>
 
-<!-- Modal para Recortar Imagen -->
-<div class="modal fade" id="cropperModal" data-backdrop="static" data-keyboard="false" tabindex="-1" role="dialog" aria-hidden="true">
-  <div class="modal-dialog modal-lg" role="document">
+<div class="modal fade" id="cropperModal" tabindex="-1" role="dialog" aria-hidden="true" data-backdrop="static">
+  <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
     <div class="modal-content">
       <div class="modal-header bg-primary">
         <h5 class="modal-title text-white">Ajustar Foto de Perfil</h5>
@@ -75,17 +71,15 @@
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
+      <!-- Sin padding para aprovechar todo el espacio -->
       <div class="modal-body p-0">
-        <!-- El contenedor DEBE tener altura fija o calculable para evitar que una imagen 1080p lo reviente -->
         <div class="img-container">
           <img id="imageToCrop" src="">
         </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-primary" id="cropAndSaveBtn">
-          <i class="fas fa-crop-alt mr-2"></i> Guardar Imagen
-        </button>
+        <button type="button" class="btn btn-primary" id="cropAndSaveBtn">Guardar Imagen</button>
       </div>
     </div>
   </div>
@@ -93,7 +87,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<!-- Cropper.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 <script>
   $(function () {
@@ -106,45 +99,37 @@
       var files = e.target.files;
       if (files && files.length > 0) {
         var file = files[0];
-        
-        // Actualizar el label visualmente
         $(this).next('.custom-file-label').addClass("selected").html(file.name);
         
-        // Cargar imagen de forma segura
-        var reader = new FileReader();
-        reader.onload = function(e) {
-          // Destruir anterior si existiera
-          if (cropper) {
-            cropper.destroy();
-            cropper = null;
-          }
-          // Asignar base64 de previsualización al img
-          image.src = e.target.result;
-          
-          // Limpiar input por si vuelve a seleccionar el mismo
-          $input.val('');
-          
-          // Mostrar modal. Cropper se inicia en evento shown
-          $modal.modal('show');
+        // El uso de createObjectURL es ultra rápido y evita congelar la pantalla
+        // con imágenes grandes, en lugar de usar FileReader base64.
+        var url = URL.createObjectURL(file);
+        
+        // IMPORTANTE: Esperamos a que la imagen original se decodifique y renderice
+        image.onload = function() {
+            // Liberar memoria
+            URL.revokeObjectURL(url);
+            // Mostrar modal
+            $modal.modal('show');
         };
-        reader.readAsDataURL(file);
+        
+        // Lanzar la carga
+        image.src = url;
+        $input.val(''); // Limpiar para que el change reaccione si elegimos la misma
       }
     });
 
     $modal.on('shown.bs.modal', function () {
-      // Importante: Inicializar SOLAMENTE cuando la imagen cargó y el modal ya tiene dimensiones reales.
+      // Para imágenes 1080p, Cropper calculará sobre el contenedor.
       cropper = new Cropper(image, {
-        aspectRatio: 1, // 1:1
-        viewMode: 1,    // Restringe el crop box a la caja del canvas
-        dragMode: 'move', // Permite arrastrar la imagen
+        aspectRatio: 1, // Cuadrado perfecto
+        viewMode: 1, // Restringir recorte al tamaño del lienzo
         autoCropArea: 0.8,
-        restore: false,
-        guides: true,
-        center: true,
-        highlight: false,
-        cropBoxMovable: true,
-        cropBoxResizable: true,
-        toggleDragModeOnDblclick: false,
+        dragMode: 'move', // Permite desplazar la imagen
+        ready: function () {
+            // Consola para debug
+            console.log("Cropper is ready.");
+        }
       });
     }).on('hidden.bs.modal', function () {
       if (cropper) {
@@ -154,24 +139,25 @@
       image.src = '';
     });
 
-    $('#cropAndSaveBtn').on('click', function(){
-      if (cropper) {
-        // Al darle GetCroppedCanvas especificamos el tamaño SALIENTE deseado (400x400), 
-        // evitando que una imagen original 4K genere un base64 de 15MB
-        var canvas = cropper.getCroppedCanvas({
-          width: 400,
-          height: 400,
-          imageSmoothingEnabled: true,
-          imageSmoothingQuality: 'high',
-        });
-
-        if(canvas){
-            var base64data = canvas.toDataURL('image/jpeg', 0.8);
-            $('#avatar_base64').val(base64data);
-            $input.removeAttr('required');
-            $modal.modal('hide');
-            $('#avatarForm').submit();
-        }
+    $('#cropAndSaveBtn').on('click', function() {
+      if (!cropper) return;
+      
+      // Especificamos un lienzo de 400x400 para que la salida NUNCA sea tan grande
+      // como la entrada original, solucionando el problema de peso de red / 413
+      var canvas = cropper.getCroppedCanvas({
+        width: 400,
+        height: 400,
+        imageSmoothingEnabled: true,
+        imageSmoothingQuality: 'high',
+      });
+      
+      if (canvas) {
+        // Calidad 0.8 es más que suficiente para un avatar, reduciendo bytes
+        var base64data = canvas.toDataURL('image/jpeg', 0.8);
+        $('#avatar_base64').val(base64data);
+        $input.removeAttr('required');
+        $modal.modal('hide');
+        $('#avatarForm').submit();
       }
     });
   });
