@@ -73,6 +73,22 @@ class QuizSession(models.Model):
         return round((self.correct_answers / self.total_questions) * 100, 1)
 
 
+class FailedQuestion(models.Model):
+    """Guarda las preguntas falladas por el usuario para modo refuerzo."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='failed_questions')
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='failed_questions')
+    question_text = models.TextField()  # To identify the question uniquely
+    question_data = models.JSONField(help_text='JSON completo de la pregunta')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        unique_together = ('user', 'subject', 'question_text')
+
+    def __str__(self):
+        return f"{self.user.username} - Falló: {self.question_text[:30]}"
+
+
 class ActivityLog(models.Model):
     """General activity log for admin reporting."""
     ACTION_CHOICES = [
@@ -113,6 +129,7 @@ class CustomPage(models.Model):
     page_type = models.CharField(max_length=20, choices=PAGE_TYPE_CHOICES, default='custom')
     content = models.TextField(blank=True, help_text='HTML/Text content of the page')
     meta_description = models.CharField(max_length=500, blank=True)
+    views_count = models.IntegerField(default=0)
     is_published = models.BooleanField(default=False)
     show_in_nav = models.BooleanField(default=True)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='custom_pages')

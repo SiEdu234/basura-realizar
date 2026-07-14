@@ -167,6 +167,9 @@
       state.maxScore = pool.reduce((acc, q) => acc + (q.points || 1), 0);
       state.userAnswers = [];
       state.isAnswerSubmitted = false;
+      state.startTime = Date.now();
+      state.failedQuestions = [];
+      state.passedQuestions = [];
 
       if (SESSION_MODE === 'test') renderQuestion();
       else renderStudyMode();
@@ -253,7 +256,12 @@
       }
 
       if (!state.isAnswerSubmitted) {
-          if (isCorrect) state.score += (q.points || 1);
+          if (isCorrect) {
+              state.score += (q.points || 1);
+              state.passedQuestions.push(q);
+          } else {
+              state.failedQuestions.push(q);
+          }
           state.isAnswerSubmitted = true;
       }
 
@@ -339,6 +347,28 @@
       els.resultPercentage.textContent = `${pct}%`;
       els.resultPercentage.className = `display-4 font-weight-bold ${pct >= 70 ? 'text-success' : (pct >= 40 ? 'text-warning' : 'text-danger')}`;
       els.resultDetails.innerHTML = `Obtuviste <strong>${state.score}</strong> de <strong>${state.maxScore}</strong> puntos posibles.`;
+
+      // Save to server
+      const sessionId = '{{ session_id }}';
+      if (sessionId) {
+          fetch("{% url 'study:save_quiz_result' %}", {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+                  'X-CSRFToken': '{{ csrf_token }}'
+              },
+              body: JSON.stringify({
+                  session_id: sessionId,
+                  correct: state.score,
+                  total: state.maxScore,
+                  duration: Math.floor((Date.now() - state.startTime) / 1000),
+                  failed_questions: state.failedQuestions,
+                  passed_questions: state.passedQuestions
+              })
+          }).then(r => r.json()).then(data => {
+              if(!data.success) console.error("Error saving session", data);
+          }).catch(e => console.error(e));
+      }
   }
 
   // Bind events

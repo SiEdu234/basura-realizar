@@ -213,6 +213,23 @@
         </span>
       </div>
     </div>
+
+    <!-- Reinforcement Mode shortcut -->
+    {% if failed_count > 0 %}
+    <div class="info-box bg-warning mt-3">
+      <span class="info-box-icon"><i class="fas fa-dumbbell text-dark"></i></span>
+      <div class="info-box-content">
+        <span class="info-box-text text-dark">Modo Refuerzo</span>
+        <span class="info-box-number text-dark mt-1">
+          <p class="mb-1 text-sm font-weight-normal">Tienes {{ failed_count }} pregunta{{ failed_count|pluralize }} por mejorar.</p>
+          <a href="{% url 'study:quiz_runner' subject.id %}?mode=refuerzo" class="btn btn-dark btn-sm">
+            <i class="fas fa-play mr-1"></i> Iniciar Refuerzo
+          </a>
+        </span>
+      </div>
+    </div>
+    {% endif %}
+
     {% endif %}
 
   </div>

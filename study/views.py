@@ -111,6 +111,9 @@ def admin_dashboard(request):
     private_notebooks = Subject.objects.filter(owner__isnull=False, is_public=False).order_by('-created_at')[:10]
     private_notebooks_count = Subject.objects.filter(owner__isnull=False, is_public=False).count()
 
+    # Top students by score in test mode
+    top_scores = QuizSession.objects.filter(mode='test', completed_at__isnull=False).order_by('-correct_answers')[:4]
+
     context = {
         'total_subjects': total_subjects,
         'student_subjects': student_subjects,
@@ -124,6 +127,7 @@ def admin_dashboard(request):
         'files_data': json.dumps(files_count_data),
         'recent_activity': recent_activity,
         'top_students': top_students,
+        'top_scores': top_scores,
         'recent_sessions': recent_sessions,
         'private_notebooks': private_notebooks,
     }
@@ -226,7 +230,15 @@ def subject_detail(request, subject_id):
                 return redirect('study:dashboard')
 
         files = subject.files.all().order_by('-created_at')
-        return render(request, 'study/subject_detail.html', {'subject': subject, 'files': files})
+        failed_count = 0
+        if request.user.is_authenticated:
+            failed_count = FailedQuestion.objects.filter(user=request.user, subject=subject).count()
+
+        return render(request, 'study/subject_detail.html', {
+            'subject': subject, 
+            'files': files,
+            'failed_count': failed_count
+        })
     except Exception as e:
         return render(request, 'study/error.html', {'error_message': str(e)})
 
@@ -288,14 +300,22 @@ def quiz_runner(request, subject_id):
         mode = request.GET.get('mode', 'test')
         count = request.GET.get('count', 'all')
 
-        selected_files = []
-        if file_ids:
-            id_list = file_ids.split(',')
-            selected_files = File.objects.filter(id__in=id_list)
+        if mode == 'refuerzo' and request.user.is_authenticated:
+            failed_qs = FailedQuestion.objects.filter(user=request.user, subject=subject)
+            questions = [fq.question_data for fq in failed_qs]
+            files_data = [{
+                'id': 'refuerzo',
+                'name': 'Refuerzo de Preguntas Fallidas',
+                'data': {'questions': questions}
+            }]
         else:
-            selected_files = subject.files.all()
-
-        files_data = [{'id': str(f.id), 'name': f.name, 'data': f.data} for f in selected_files]
+            selected_files = []
+            if file_ids:
+                id_list = file_ids.split(',')
+                selected_files = File.objects.filter(id__in=id_list)
+            else:
+                selected_files = subject.files.all()
+            files_data = [{'id': str(f.id), 'name': f.name, 'data': f.data} for f in selected_files]
 
         # Create a session record
         session = None
@@ -330,6 +350,8 @@ def save_quiz_result(request):
             correct = data.get('correct', 0)
             total = data.get('total', 0)
             duration = data.get('duration', 0)
+            failed_questions = data.get('failed_questions', [])
+            passed_questions = data.get('passed_questions', [])
 
             if session_id:
                 try:
@@ -340,6 +362,23 @@ def save_quiz_result(request):
                     session.completed_at = timezone.now()
                     session.save()
                     _log(request, 'complete_quiz', f'Completó sesión: {correct}/{total} correctas')
+                    
+                    # Update FailedQuestions tracking
+                    for q in passed_questions:
+                        q_text = q.get('text', '')
+                        if q_text:
+                            FailedQuestion.objects.filter(user=request.user, subject=session.subject, question_text=q_text).delete()
+                            
+                    for q in failed_questions:
+                        q_text = q.get('text', '')
+                        if q_text:
+                            FailedQuestion.objects.update_or_create(
+                                user=request.user,
+                                subject=session.subject,
+                                question_text=q_text,
+                                defaults={'question_data': q}
+                            )
+
                     return JsonResponse({'success': True, 'score': session.score_percent})
                 except QuizSession.DoesNotExist:
                     pass
@@ -666,6 +705,44 @@ def generate_report_pdf(request):
             log_table.setStyle(section_table_style(DANGER))
             story.append(log_table)
 
+        # ── PÁGINAS DINÁMICAS ──
+        pages = CustomPage.objects.all().order_by('-views_count')
+        if pages:
+            story.append(Spacer(1, 0.6*cm))
+            story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#dddddd')))
+            story.append(Paragraph("Rendimiento de Páginas Dinámicas", h2_style))
+            page_rows = [['Título', 'Slug', 'Tipo', 'Estado', 'Vistas']]
+            for p in pages:
+                page_rows.append([
+                    p.title[:25],
+                    f"/{p.slug}/",
+                    p.get_page_type_display(),
+                    'Publicada' if p.is_published else 'Borrador',
+                    str(p.views_count)
+                ])
+            page_table = Table(page_rows, colWidths=[4*cm, 3.5*cm, 3*cm, 2.5*cm, 2*cm])
+            page_table.setStyle(section_table_style(SUCCESS))
+            story.append(page_table)
+
+        # ── PREGUNTAS FALLIDAS (REFUERZO) ──
+        failed_stats = FailedQuestion.objects.values('user__username', 'subject__name').annotate(
+            count=Count('id')
+        ).order_by('-count')
+        if failed_stats:
+            story.append(Spacer(1, 0.6*cm))
+            story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor('#dddddd')))
+            story.append(Paragraph("Estado de Refuerzo por Usuario/Materia", h2_style))
+            fail_rows = [['Usuario', 'Materia', 'Preguntas por Repasar']]
+            for f in failed_stats:
+                fail_rows.append([
+                    f['user__username'],
+                    f['subject__name'],
+                    str(f['count'])
+                ])
+            fail_table = Table(fail_rows, colWidths=[4.5*cm, 5.5*cm, 5*cm])
+            fail_table.setStyle(section_table_style(WARNING))
+            story.append(fail_table)
+
         # ── FOOTER note ──
         story.append(Spacer(1, 1*cm))
         story.append(HRFlowable(width="100%", thickness=1, color=MID_GRAY))
@@ -778,6 +855,8 @@ def delete_page(request, page_id):
 def view_custom_page(request, slug):
     """Render a custom page for all users."""
     page = get_object_or_404(CustomPage, slug=slug, is_published=True)
+    page.views_count += 1
+    page.save(update_fields=['views_count'])
     nav_pages = CustomPage.objects.filter(is_published=True, show_in_nav=True).order_by('title')
     return render(request, 'study/custom_page_view.html', {'page': page, 'nav_pages': nav_pages})
 

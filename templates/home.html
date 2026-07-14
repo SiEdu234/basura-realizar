@@ -81,16 +81,20 @@
               <tr>
                 <th>Usuario</th>
                 <th>Acción</th>
+                <th>Descripción</th>
                 <th>Fecha</th>
               </tr>
             </thead>
             <tbody>
-              {% for log in activity_logs %}
+              {% for log in recent_activity %}
               <tr>
-                <td>{{ log.user.username }}</td>
-                <td>{{ log.action }}</td>
+                <td>{{ log.user.username|default:"Sistema" }}</td>
+                <td><span class="badge badge-info">{{ log.get_action_display }}</span></td>
+                <td style="white-space: normal; word-wrap: break-word; max-width: 250px;">
+                  {{ log.description }}
+                </td>
                 <td>
-                  <div class="sparkbar" data-color="#00a65a" data-height="20">{{ log.timestamp|date:"d M H:i" }}</div>
+                  <div class="sparkbar text-muted" style="font-size: 0.85rem;"><i class="far fa-clock mr-1"></i>{{ log.created_at|date:"d/m/y H:i" }}</div>
                 </td>
               </tr>
               {% empty %}
@@ -136,14 +140,16 @@
       </div>
       <div class="card-body p-0">
         <ul class="users-list clearfix">
-          {% for session in recent_sessions|slice:":4" %}
+          {% for session in top_scores %}
           <li style="width: 25%;">
-            <img src="{% static 'dist/img/avatar.png' %}" alt="User Image">
+            <div class="user-avatar mx-auto mb-2" style="width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.2rem; color: #fff; background:{% cycle '#3c8dbc' '#00a65a' '#f39c12' '#dd4b39' '#605ca8' '#39cccc' %};">
+              {{ session.user.username|make_list|first|upper }}
+            </div>
             <a class="users-list-name" href="#">{{ session.user.username }}</a>
             <span class="users-list-date">{{ session.score_percent }}%</span>
           </li>
           {% empty %}
-          <li class="w-100 text-center text-muted py-3">No hay sesiones</li>
+          <li class="w-100 text-center text-muted py-3">No hay sesiones evaluadas</li>
           {% endfor %}
         </ul>
       </div>
