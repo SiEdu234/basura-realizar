@@ -85,11 +85,12 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 <script>
   $(function () {
-    console.log("CROPPER V6 LOADED - FileReader Fallback");
+    console.log("CROPPER V7 LOADED - Final Image Decode Fix");
     var $modal = $('#cropperModal');
     var image = document.getElementById('imageToCrop');
     var cropper = null;
     var $input = $('#avatarInput');
+    var currentUrl = null;
 
     $input.on('change', function(e) {
       var files = e.target.files;
@@ -97,17 +98,16 @@
         var file = files[0];
         $(this).next('.custom-file-label').addClass("selected").html(file.name);
         
-        // Volvemos a FileReader porque URL.createObjectURL a veces es bloqueado o falla en ciertos navegadores/formatos
-        var reader = new FileReader();
-        reader.onload = function(event) {
-          image.src = event.target.result;
-          $modal.modal('show');
-          $input.val(''); // Limpiamos después de mostrar el modal
+        // createObjectURL es 100x más rápido y no congela el navegador con base64 gigantes
+        currentUrl = URL.createObjectURL(file);
+        
+        // CRUCIAL: Esperamos a que la imagen esté 100% renderizada en el DOM antes de abrir el modal
+        image.onload = function() {
+            $modal.modal('show');
         };
-        reader.onerror = function() {
-          alert("Error al leer la imagen. Formato no soportado.");
-        };
-        reader.readAsDataURL(file);
+        
+        image.src = currentUrl;
+        $input.val(''); // Limpiar el input
       }
     });
 
@@ -129,7 +129,12 @@
         cropper.destroy();
         cropper = null;
       }
-      image.removeAttribute('src'); // No usamos src='' para evitar peticiones a la red
+      image.removeAttribute('src');
+      // Solo liberamos la memoria CUANDO se cierra el modal
+      if (currentUrl) {
+          URL.revokeObjectURL(currentUrl);
+          currentUrl = null;
+      }
     });
 
     $('#cropAndSaveBtn').on('click', function() {
