@@ -103,11 +103,12 @@ $(function () {
 
   // Paso 2: el modal ya esta visible y tiene dimensiones reales
   $modal.on('shown.bs.modal', function () {
-    if (!selectedFile) return;
+    if (!selectedFile || cropper) return; // Guard: si ya hay cropper activo, no crear otro
     var reader = new FileReader();
     reader.onload = function(e) {
       // Esperamos a que la imagen tenga sus dimensiones reales antes de iniciar Cropper
       image.onload = function() {
+        image.onload = null; // Limpiar para evitar re-triggers
         if (cropper) { cropper.destroy(); }
         cropper = new Cropper(image, {
           aspectRatio: 1,
