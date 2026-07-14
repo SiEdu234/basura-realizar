@@ -1,0 +1,53 @@
+{
+  "subject": "Matemáticas - Álgebra",
+  "description": "Banco de preguntas de práctica con opción múltiple",
+  "author": "Profesor01",
+  "version": "1.0",
+  "questions": [
+    {
+      "id": 1,
+      "question": "¿Cuál es el resultado de resolver 2x + 6 = 14?",
+      "options": ["x = 3", "x = 4", "x = 5", "x = 10"],
+      "answer": "x = 4",
+      "explanation": "Restamos 6 a ambos lados: 2x = 8, luego dividimos entre 2: x = 4",
+      "type": "multiple_choice",
+      "difficulty": "easy",
+      "tags": ["álgebra", "ecuaciones"]
+    },
+    {
+      "id": 2,
+      "question": "¿Qué es el Teorema de Pitágoras?",
+      "options": [
+        "a² + b² = c²",
+        "a + b = c",
+        "a² - b² = c",
+        "a² × b² = c²"
+      ],
+      "answer": "a² + b² = c²",
+      "explanation": "En un triángulo rectángulo, el cuadrado de la hipotenusa (c) es igual a la suma de los cuadrados de los catetos (a y b).",
+      "type": "multiple_choice",
+      "difficulty": "medium",
+      "tags": ["geometría", "pitágoras"]
+    },
+    {
+      "id": 3,
+      "question": "Simplifica: (x² × x³)",
+      "options": ["x⁵", "x⁶", "x^(2+3)", "2x⁵"],
+      "answer": "x⁵",
+      "explanation": "Al multiplicar potencias de la misma base se suman los exponentes: x^(2+3) = x⁵",
+      "type": "multiple_choice",
+      "difficulty": "easy",
+      "tags": ["potencias", "álgebra"]
+    },
+    {
+      "id": 4,
+      "question": "¿Cuál es la derivada de f(x) = 3x²?",
+      "options": ["6x", "3x", "x²", "6"],
+      "answer": "6x",
+      "explanation": "Regla de la potencia: d/dx(xⁿ) = n·x^(n-1). Entonces d/dx(3x²) = 3·2x^(2-1) = 6x.",
+      "type": "multiple_choice",
+      "difficulty": "hard",
+      "tags": ["cálculo", "derivadas"]
+    }
+  ]
+}

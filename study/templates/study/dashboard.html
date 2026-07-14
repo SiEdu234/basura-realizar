@@ -1,335 +1,90 @@
 {% extends "base.html" %}
+{% load static %}
 
-{% block title %}{% if user.is_staff %}Gestión de Materias{% elif user.is_authenticated %}Mis Cuadernos{% else %}Materias Públicas{% endif %} — Study Admin{% endblock %}
+{% block title %}Inicio — Study Admin{% endblock %}
 {% block nav_dashboard %}active{% endblock %}
-{% block page_title %}{% if user.is_staff %}Materias & Cuadernos{% elif user.is_authenticated %}Mis Cuadernos{% else %}Materias de Estudio{% endif %}{% endblock %}
-
-{% block extra_css %}
-<style>
-  .subject-card {
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 3px 14px rgba(0,0,0,.1);
-    transition: transform .2s, box-shadow .2s;
-    position: relative;
-    margin-bottom: 20px;
-  }
-  .subject-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,.16); }
-  .subject-card .card-inner { padding: 20px 18px 14px; }
-  .subject-card .card-inner h4 { font-size: 1.1rem; font-weight: 700; margin: 0 0 4px; color: #fff; }
-  .subject-card .card-inner .sub-info { font-size: .82rem; opacity: .85; color: #fff; }
-  .subject-card .card-icon {
-    position: absolute; top: 50%; right: 16px;
-    transform: translateY(-50%); opacity: .2; font-size: 3.5rem; color: #fff;
-  }
-  .subject-card .card-footer-actions {
-    background: rgba(0,0,0,.15);
-    padding: 8px 14px;
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 6px;
-  }
-  .subject-card .card-footer-link {
-    color: #fff; text-decoration: none; font-size: .82rem; flex: 1;
-    transition: opacity .15s;
-  }
-  .subject-card .card-footer-link:hover { opacity: .75; }
-  .author-badge { background: rgba(255,255,255,.22); border-radius: 20px; padding: 2px 10px; font-size: .75rem; color: #fff; }
-  .filter-tabs .nav-link { border-radius: 20px; font-size: .85rem; }
-  .empty-state { text-align: center; padding: 60px 20px; }
-  .empty-state i { font-size: 3rem; color: #dee2e6; margin-bottom: 16px; }
-</style>
-{% endblock %}
+{% block page_title %}Panel de Cuadernos y Materias{% endblock %}
 
 {% block content %}
 
-<!-- Top Actions -->
+<!-- Header Filters and Create Button -->
 <div class="row mb-3">
-  <div class="col-md-8 d-flex align-items-center gap-2">
-    {% if user.is_authenticated %}
-    <button class="btn btn-primary" data-toggle="modal" data-target="#createSubjectModal">
-      <i class="fas fa-plus-circle mr-1"></i>
-      {% if user.is_staff %}Nueva Materia{% else %}Nuevo Cuaderno{% endif %}
-    </button>
-    {% endif %}
-
-    <!-- Filter tabs (visual only, can be enhanced with JS) -->
-    <ul class="nav nav-pills filter-tabs ml-3" id="subjectFilter">
-      <li class="nav-item">
-        <a class="nav-link active" href="#" data-filter="all">Todos</a>
-      </li>
-      {% if user.is_staff %}
-      <li class="nav-item">
-        <a class="nav-link" href="#" data-filter="public">Públicos</a>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" href="#" data-filter="private">Privados</a>
-      </li>
-      {% endif %}
-    </ul>
+  <div class="col-md-8">
+    <div class="btn-group">
+      <a href="?filter=all" class="btn btn-outline-secondary {% if current_filter == 'all' %}active{% endif %}">
+        <i class="fas fa-list mr-1"></i> Todos
+      </a>
+      <a href="?filter=mine" class="btn btn-outline-secondary {% if current_filter == 'mine' %}active{% endif %}">
+        <i class="fas fa-user mr-1"></i> Mis Cuadernos
+      </a>
+      <a href="?filter=public" class="btn btn-outline-secondary {% if current_filter == 'public' %}active{% endif %}">
+        <i class="fas fa-globe mr-1"></i> Públicos
+      </a>
+    </div>
   </div>
   <div class="col-md-4 text-right">
-    <span class="text-muted"><i class="fas fa-layer-group mr-1"></i>{{ subjects|length }} elemento{% if subjects|length != 1 %}s{% endif %}</span>
+    {% if user.is_authenticated %}
+    <a href="{% url 'study:create_subject' %}" class="btn btn-primary">
+      <i class="fas fa-plus-circle mr-1"></i> Nuevo Cuaderno
+    </a>
+    {% endif %}
   </div>
 </div>
 
-<!-- Subject Cards Grid -->
-<div class="row" id="subjectsGrid">
+<!-- Grid of Subjects -->
+<div class="row">
   {% for subject in subjects %}
-
-  {% comment %}
-  Determine card color:
-  - Admin public subject: bg-info (blue)
-  - Student private notebook: bg-success (green)
-  - Student public notebook: bg-teal / bg-primary (teal)
-  {% endcomment %}
-
-  {% if subject.owner is None %}
-    {% with card_color="bg-info" filter_class="public" %}
-    <div class="col-xl-3 col-lg-4 col-md-6 subject-item" data-type="{{ filter_class }}">
-      <div class="subject-card {{ card_color }}">
-        <div class="card-inner">
-          <h4>{{ subject.name }}</h4>
-          <div class="sub-info">
-            <i class="fas fa-file mr-1"></i>{{ subject.files.count }} archivos
-            <span class="ml-2 author-badge"><i class="fas fa-globe mr-1"></i>Materia Pública</span>
-          </div>
-        </div>
-        <div class="card-icon"><i class="fas fa-book-open"></i></div>
-        <div class="card-footer-actions">
-          <a href="{% url 'study:subject_detail' subject.id %}" class="card-footer-link">
-            <i class="fas fa-arrow-circle-right mr-1"></i> Ver archivos
-          </a>
-          {% if user.is_staff %}
-          <button class="btn btn-xs btn-light text-primary" data-toggle="modal" data-target="#editModal{{ subject.id }}">
-            <i class="fas fa-edit"></i>
-          </button>
-          <button class="btn btn-xs btn-light text-danger" data-toggle="modal" data-target="#deleteModal{{ subject.id }}">
-            <i class="fas fa-trash"></i>
-          </button>
+  <div class="col-lg-4 col-md-6 mb-4">
+    <!-- AdminLTE Card -->
+    <div class="card card-outline {% if subject.is_admin_subject %}card-info{% else %}card-primary{% endif %} h-100">
+      <div class="card-header">
+        <h3 class="card-title font-weight-bold text-truncate" style="max-width: 80%;">
+          {% if subject.is_admin_subject %}
+            <i class="fas fa-book text-info mr-1"></i>
+          {% else %}
+            <i class="fas fa-book-open text-primary mr-1"></i>
+          {% endif %}
+          {{ subject.name }}
+        </h3>
+        <div class="card-tools">
+          {% if subject.is_private_notebook %}
+            <span class="badge badge-danger"><i class="fas fa-lock mr-1"></i>Privado</span>
+          {% else %}
+            <span class="badge badge-success"><i class="fas fa-globe mr-1"></i>Público</span>
           {% endif %}
         </div>
       </div>
-    </div>
-    {% endwith %}
-  {% elif subject.is_public %}
-    {% with card_color="bg-primary" filter_class="public" %}
-    <div class="col-xl-3 col-lg-4 col-md-6 subject-item" data-type="{{ filter_class }}">
-      <div class="subject-card {{ card_color }}">
-        <div class="card-inner">
-          <!-- Author display for public notebooks -->
-          <div class="mb-1">
-            <span class="author-badge"><i class="fas fa-user mr-1"></i>{{ subject.owner.username }}</span>
-          </div>
-          <h4>{{ subject.name }}</h4>
-          <div class="sub-info">
-            <i class="fas fa-file mr-1"></i>{{ subject.files.count }} archivos
-            <span class="ml-2 author-badge"><i class="fas fa-globe mr-1"></i>Cuaderno Público</span>
-          </div>
-        </div>
-        <div class="card-icon"><i class="fas fa-book"></i></div>
-        <div class="card-footer-actions">
-          <a href="{% url 'study:subject_detail' subject.id %}" class="card-footer-link">
-            <i class="fas fa-arrow-circle-right mr-1"></i> Ver archivos
-          </a>
-          {% if user == subject.owner %}
-          <form action="{% url 'study:make_subject_public' subject.id %}" method="post" class="d-inline">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="private">
-            <button type="submit" class="btn btn-xs btn-light text-warning" title="Hacer privado">
-              <i class="fas fa-lock"></i>
-            </button>
-          </form>
-          <button class="btn btn-xs btn-light text-primary" data-toggle="modal" data-target="#editModal{{ subject.id }}">
-            <i class="fas fa-edit"></i>
-          </button>
-          <button class="btn btn-xs btn-light text-danger" data-toggle="modal" data-target="#deleteModal{{ subject.id }}">
-            <i class="fas fa-trash"></i>
-          </button>
-          {% elif user.is_staff %}
-          <button class="btn btn-xs btn-light text-danger" data-toggle="modal" data-target="#deleteModal{{ subject.id }}">
-            <i class="fas fa-trash"></i>
-          </button>
+      <div class="card-body">
+        <p class="text-muted mb-2">
+          {% if subject.owner %}
+            <i class="fas fa-user mr-1"></i> Creado por: <strong>{{ subject.owner.username }}</strong>
+          {% else %}
+            <i class="fas fa-shield-alt mr-1"></i> Materia Oficial (Admin)
           {% endif %}
-        </div>
+        </p>
+        <p class="text-muted mb-0">
+          <i class="fas fa-file-alt mr-1"></i> {{ subject.files.count }} archivos de preguntas
+        </p>
       </div>
-    </div>
-    {% endwith %}
-  {% else %}
-    {% with card_color="bg-success" filter_class="private" %}
-    <div class="col-xl-3 col-lg-4 col-md-6 subject-item" data-type="{{ filter_class }}">
-      <div class="subject-card {{ card_color }}">
-        <div class="card-inner">
-          {% if user.is_staff %}
-          <div class="mb-1">
-            <span class="author-badge"><i class="fas fa-user mr-1"></i>{{ subject.owner.username }}</span>
-            <span class="author-badge ml-1"><i class="fas fa-lock mr-1"></i>Privado</span>
-          </div>
-          {% endif %}
-          <h4>{{ subject.name }}</h4>
-          <div class="sub-info">
-            <i class="fas fa-file mr-1"></i>{{ subject.files.count }} archivos
-            {% if not user.is_staff %}
-              <span class="ml-2 author-badge"><i class="fas fa-lock mr-1"></i>Mi Cuaderno</span>
-            {% endif %}
-          </div>
-        </div>
-        <div class="card-icon"><i class="fas fa-book"></i></div>
-        <div class="card-footer-actions">
-          <a href="{% url 'study:subject_detail' subject.id %}" class="card-footer-link">
-            <i class="fas fa-arrow-circle-right mr-1"></i> Ver archivos
-          </a>
-          {% if user == subject.owner %}
-          <form action="{% url 'study:make_subject_public' subject.id %}" method="post" class="d-inline">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="public">
-            <button type="submit" class="btn btn-xs btn-light text-info" title="Hacer público">
-              <i class="fas fa-globe"></i>
-            </button>
-          </form>
-          <button class="btn btn-xs btn-light text-primary" data-toggle="modal" data-target="#editModal{{ subject.id }}">
-            <i class="fas fa-edit"></i>
-          </button>
-          <button class="btn btn-xs btn-light text-danger" data-toggle="modal" data-target="#deleteModal{{ subject.id }}">
-            <i class="fas fa-trash"></i>
-          </button>
-          {% elif user.is_staff %}
-          <button class="btn btn-xs btn-light text-danger" data-toggle="modal" data-target="#deleteModal{{ subject.id }}">
-            <i class="fas fa-trash"></i>
-          </button>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-    {% endwith %}
-  {% endif %}
-
-  <!-- Edit Modal -->
-  {% if user.is_staff or user == subject.owner %}
-  <div class="modal fade" id="editModal{{ subject.id }}" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-      <div class="modal-content">
-        <form action="{% url 'study:edit_subject' subject.id %}" method="post">
-          {% csrf_token %}
-          <div class="modal-header bg-primary text-white">
-            <h5 class="modal-title"><i class="fas fa-edit mr-1"></i> Editar {{ subject.name }}</h5>
-            <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
-          </div>
-          <div class="modal-body">
-            <div class="form-group">
-              <label>Nombre</label>
-              <input type="text" class="form-control" name="name" value="{{ subject.name }}" required>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-            <button type="submit" class="btn btn-primary">Guardar</button>
-          </div>
-        </form>
+      <div class="card-footer bg-white">
+        <a href="{% url 'study:subject_detail' subject.id %}" class="btn btn-outline-primary btn-block">
+          <i class="fas fa-folder-open mr-1"></i> Abrir Cuaderno
+        </a>
       </div>
     </div>
   </div>
-  {% endif %}
-
-  <!-- Delete Modal -->
-  {% if user.is_staff or user == subject.owner %}
-  <div class="modal fade" id="deleteModal{{ subject.id }}" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-      <div class="modal-content">
-        <form action="{% url 'study:delete_subject' subject.id %}" method="post">
-          {% csrf_token %}
-          <div class="modal-header bg-danger text-white">
-            <h5 class="modal-title"><i class="fas fa-trash mr-1"></i> Eliminar</h5>
-            <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
-          </div>
-          <div class="modal-body">
-            <p>¿Seguro que deseas eliminar <strong>{{ subject.name }}</strong>?</p>
-            <p class="text-danger"><small><i class="fas fa-exclamation-triangle mr-1"></i>¡También se eliminarán todos los archivos y preguntas asociados!</small></p>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-            <button type="submit" class="btn btn-danger">Sí, Eliminar</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-  {% endif %}
-
   {% empty %}
   <div class="col-12">
-    <div class="empty-state">
-      <i class="fas fa-book-open d-block"></i>
-      <h4 class="text-muted">
-        {% if user.is_staff %}No hay materias ni cuadernos.
-        {% elif user.is_authenticated %}No tienes cuadernos ni hay material público.
-        {% else %}No hay materias públicas disponibles.
-        {% endif %}
-      </h4>
-      {% if user.is_authenticated %}
-      <button class="btn btn-primary" data-toggle="modal" data-target="#createSubjectModal">
-        <i class="fas fa-plus mr-1"></i> Crear el primero
-      </button>
-      {% endif %}
+    <div class="callout callout-info text-center py-5">
+      <i class="fas fa-folder-open mb-3" style="font-size: 3rem; color: #17a2b8;"></i>
+      <h5>No hay cuadernos disponibles</h5>
+      <p>No se encontraron materias con el filtro actual.</p>
+      <a href="{% url 'study:create_subject' %}" class="btn btn-primary mt-2">
+        <i class="fas fa-plus"></i> Crear el primero
+      </a>
     </div>
   </div>
   {% endfor %}
 </div>
 
-<!-- Create Modal -->
-{% if user.is_authenticated %}
-<div class="modal fade" id="createSubjectModal" tabindex="-1" role="dialog" aria-hidden="true">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <form action="{% url 'study:create_subject' %}" method="post">
-        {% csrf_token %}
-        <div class="modal-header bg-primary text-white">
-          <h5 class="modal-title">
-            <i class="fas fa-plus-circle mr-1"></i>
-            {% if user.is_staff %}Nueva Materia Pública{% else %}Nuevo Cuaderno Privado{% endif %}
-          </h5>
-          <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
-        </div>
-        <div class="modal-body">
-          <div class="form-group">
-            <label for="subjectName">Nombre</label>
-            <input type="text" class="form-control" id="subjectName" name="name" required
-                   placeholder="{% if user.is_staff %}Ej. Biología{% else %}Ej. Mis apuntes{% endif %}">
-          </div>
-          {% if not user.is_staff %}
-          <div class="alert alert-info mb-0">
-            <i class="fas fa-info-circle mr-1"></i>
-            Tu cuaderno es <strong>privado</strong>. Puedes hacerlo público después si lo deseas.
-          </div>
-          {% endif %}
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-          <button type="submit" class="btn btn-primary">Crear</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-{% endif %}
-
-{% endblock %}
-
-{% block extra_js %}
-<script>
-$(function() {
-  // Filter tabs
-  $('#subjectFilter .nav-link').on('click', function(e) {
-    e.preventDefault();
-    $('#subjectFilter .nav-link').removeClass('active');
-    $(this).addClass('active');
-    var filter = $(this).data('filter');
-    if (filter === 'all') {
-      $('.subject-item').show();
-    } else {
-      $('.subject-item').hide();
-      $('.subject-item[data-type="' + filter + '"]').show();
-    }
-  });
-});
-</script>
 {% endblock %}

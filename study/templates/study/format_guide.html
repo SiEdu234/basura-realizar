@@ -16,8 +16,8 @@
 
         <div class="d-flex justify-content-between align-items-center mb-2">
           <h5 class="mb-0">Ejemplo de JSON</h5>
-          <button class="btn btn-sm btn-outline-primary" onclick="copyJSON()">
-            <i class="fas fa-copy"></i> Copiar JSON
+          <button id="btnCopyJson" class="btn btn-sm btn-outline-primary" onclick="copyJSON(event)">
+            <i class="fas fa-copy mr-1"></i> Copiar JSON
           </button>
         </div>
         <pre id="jsonExample" class="bg-dark text-light p-3 rounded" style="max-height: 400px; overflow-y: auto;"><code>{
@@ -144,26 +144,186 @@
     </div>
   </div>
 </div>
+
+<!-- ═══ FLASHCARD FORMAT SECTION ═══════════════════════════════════════════ -->
+<div class="row mt-4">
+  <div class="col-12">
+    <div class="card card-outline" style="border-color:#605ca8;">
+      <div class="card-header" style="border-color:#605ca8;">
+        <h3 class="card-title" style="color:#605ca8;">
+          <i class="fas fa-layer-group mr-1"></i> Formato JSON — Tarjetas de Memoria (Flashcards)
+        </h3>
+      </div>
+      <div class="card-body">
+        <p>Las <strong>Tarjetas de Memoria</strong> usan su propio formato JSON. Soportan frente/reverso, etiquetas, nivel de dificultad y pistas. Son independientes del banco de preguntas.</p>
+
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <h6 class="font-weight-bold"><i class="fas fa-list-alt mr-1"></i> Campos del archivo (raíz)</h6>
+            <table class="table table-sm table-bordered">
+              <thead class="thead-light"><tr><th>Campo</th><th>Tipo</th><th>Descripción</th></tr></thead>
+              <tbody>
+                <tr><td><code>subject</code></td><td>string</td><td>Nombre de la materia/tema</td></tr>
+                <tr><td><code>description</code></td><td>string</td><td>Descripción breve del mazo</td></tr>
+                <tr><td><code>author</code></td><td>string</td><td>Quién lo creó</td></tr>
+                <tr><td><code>version</code></td><td>string</td><td>Versión del archivo</td></tr>
+                <tr><td><code>cards</code></td><td>array</td><td><strong>Lista de tarjetas</strong></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="col-md-6">
+            <h6 class="font-weight-bold"><i class="fas fa-id-card mr-1"></i> Campos de cada tarjeta (<code>cards[]</code>)</h6>
+            <table class="table table-sm table-bordered">
+              <thead class="thead-light"><tr><th>Campo</th><th>Tipo</th><th>Descripción</th></tr></thead>
+              <tbody>
+                <tr><td><code>id</code></td><td>number</td><td>Identificador único</td></tr>
+                <tr><td><code>front</code></td><td>string</td><td><strong>Pregunta / Término</strong> (frente)</td></tr>
+                <tr><td><code>back</code></td><td>string</td><td><strong>Respuesta / Definición</strong> (reverso)</td></tr>
+                <tr><td><code>tags</code></td><td>array</td><td>Etiquetas para agrupar</td></tr>
+                <tr><td><code>difficulty</code></td><td>easy/medium/hard</td><td>Dificultad inicial</td></tr>
+                <tr><td><code>hint</code></td><td>string</td><td>Pista opcional</td></tr>
+                <tr><td><code>image_url</code></td><td>string/null</td><td>URL de imagen (opcional)</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- JSON example -->
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h5 class="mb-0">Ejemplo completo de Tarjetas JSON</h5>
+          <button class="btn btn-sm btn-outline-secondary" onclick="copyFlashcard(event)" style="border-color:#605ca8;color:#605ca8;">
+            <i class="fas fa-copy mr-1"></i>Copiar JSON
+          </button>
+        </div>
+        <pre id="flashcardExample" class="p-3 rounded" style="background:#282a36;color:#f8f8f2;font-size:.82rem;overflow-x:auto;max-height:420px;">{
+  "subject": "Biología Celular",
+  "description": "Tarjetas de memoria sobre conceptos básicos de la célula",
+  "author": "Estudiante01",
+  "version": "1.0",
+  "cards": [
+    {
+      "id": 1,
+      "front": "¿Qué es la mitosis?",
+      "back": "División celular que produce dos células hijas idénticas. Fases: Profase, Metafase, Anafase y Telofase.",
+      "tags": ["célula", "división"],
+      "difficulty": "medium",
+      "hint": "Piensa en copias exactas",
+      "image_url": null
+    },
+    {
+      "id": 2,
+      "front": "¿Cuál es la función del ribosoma?",
+      "back": "Sintetizar proteínas a partir del ARN mensajero. Pueden estar libres o unidos al retículo endoplasmático rugoso.",
+      "tags": ["orgánulo", "proteínas"],
+      "difficulty": "easy",
+      "hint": "Fábrica de proteínas",
+      "image_url": null
+    },
+    {
+      "id": 3,
+      "front": "ADN vs ARN — diferencias principales",
+      "back": "ADN: doble cadena, desoxirribosa, bases A/T/C/G, almacena info.\nARN: cadena simple, ribosa, bases A/U/C/G, transmite info.",
+      "tags": ["ADN", "ARN", "genética"],
+      "difficulty": "hard",
+      "hint": "Estructura y función de cada uno",
+      "image_url": null
+    }
+  ]
+}</pre>
+
+        <!-- AI Prompts for flashcards -->
+        <div class="callout callout-info mt-3">
+          <h5><i class="fas fa-robot mr-1"></i> Prompts de IA para generar Flashcards</h5>
+          <h6><strong>1. Desde un tema:</strong></h6>
+          <p class="font-italic text-secondary mb-3">
+            "Actúa como un profesor experto y crea 10 tarjetas de memoria sobre <strong>[INSERTA TU TEMA]</strong>. Genera el resultado en formato JSON con la estructura: subject, description, author, version, y un array 'cards'. Cada tarjeta debe tener: id, front (pregunta o término), back (respuesta o definición), tags (array), difficulty (easy/medium/hard), hint (string) e image_url (null). El JSON debe ser válido y no incluyas texto fuera del JSON."
+          </p>
+          <h6><strong>2. Desde apuntes:</strong></h6>
+          <p class="font-italic text-secondary mb-0">
+            "A partir de los siguientes apuntes, genera 15 tarjetas de memoria en formato JSON con la estructura: subject, description, author, version y array 'cards' (id, front, back, tags, difficulty, hint, image_url). El JSON debe ser válido. Apuntes: [PEGA TUS APUNTES AQUÍ]"
+          </p>
+        </div>
+
+        <!-- Difference note -->
+        <div class="alert alert-warning mt-3 mb-0">
+          <i class="fas fa-info-circle mr-1"></i>
+          <strong>Diferencia clave:</strong> Los archivos de <strong>preguntas</strong> usan el array <code>"questions"</code> y son para el modo Quiz. Las <strong>tarjetas</strong> usan el array <code>"cards"</code> y son para el modo de Repaso con volteo. <em>Son dos herramientas distintas.</em>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
+
 
 {% block extra_js %}
 <script>
-  function copyJSON() {
-    var content = document.getElementById('jsonExample').innerText;
-    navigator.clipboard.writeText(content).then(function() {
-      // Opcional: mostrar un pequeño mensaje temporal o cambiar el botón
-      var btn = event.currentTarget;
-      var originalHTML = btn.innerHTML;
-      btn.innerHTML = '<i class="fas fa-check"></i> ¡Copiado!';
-      btn.classList.replace('btn-outline-primary', 'btn-success');
-      setTimeout(function() {
-        btn.innerHTML = originalHTML;
+  function fallbackCopyTextToClipboard(text, btn) {
+    var textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.position = "fixed";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      var successful = document.execCommand('copy');
+      if (successful) {
+        showCopied(btn);
+      } else {
+        alert('No se pudo copiar. Selecciona y copia manualmente.');
+      }
+    } catch (err) {
+      alert('Error al copiar el texto. Selecciona y copia manualmente.');
+    }
+    document.body.removeChild(textArea);
+  }
+
+  function showCopied(btn) {
+    var originalHTML = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-check"></i> ¡Copiado!';
+    btn.classList.replace('btn-outline-primary', 'btn-success');
+    btn.classList.replace('btn-outline-purple', 'btn-success');
+    setTimeout(function() {
+      btn.innerHTML = originalHTML;
+      if (btn.id === 'btnCopyJson') {
         btn.classList.replace('btn-success', 'btn-outline-primary');
-      }, 2000);
+      } else {
+        btn.classList.replace('btn-success', 'btn-outline-purple');
+      }
+    }, 2000);
+  }
+
+  function copyJSON(event) {
+    var btn = event.currentTarget;
+    var content = document.getElementById('jsonExample').textContent;
+    if (!navigator.clipboard) {
+      fallbackCopyTextToClipboard(content, btn);
+      return;
+    }
+    navigator.clipboard.writeText(content).then(function() {
+      showCopied(btn);
     }).catch(function(err) {
-      console.error('Error al copiar: ', err);
-      alert('No se pudo copiar el JSON.');
+      fallbackCopyTextToClipboard(content, btn);
+    });
+  }
+
+  function copyFlashcard(event) {
+    var btn = event.currentTarget;
+    var content = document.getElementById('flashcardExample').textContent;
+    if (!navigator.clipboard) {
+      fallbackCopyTextToClipboard(content, btn);
+      return;
+    }
+    navigator.clipboard.writeText(content).then(function() {
+      showCopied(btn);
+    }).catch(function(err) {
+      fallbackCopyTextToClipboard(content, btn);
     });
   }
 </script>
 {% endblock %}
+

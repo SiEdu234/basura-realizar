@@ -5,445 +5,149 @@
 {% block nav_stats %}active{% endblock %}
 {% block page_title %}Panel de Administración{% endblock %}
 
-{% block extra_css %}
-<style>
-  .kpi-card {
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 4px 20px rgba(0,0,0,.12);
-    transition: transform .2s, box-shadow .2s;
-    position: relative;
-  }
-  .kpi-card:hover { transform: translateY(-4px); box-shadow: 0 8px 28px rgba(0,0,0,.18); }
-  .kpi-card .inner { padding: 20px 20px 12px; }
-  .kpi-card .inner h3 { font-size: 2.4rem; font-weight: 700; margin: 0; }
-  .kpi-card .inner p  { margin: 4px 0 0; font-size: .85rem; opacity: .88; }
-  .kpi-card .icon { position: absolute; top: 50%; right: 16px; transform: translateY(-50%); opacity: .22; font-size: 4rem; }
-  .kpi-card .footer-link {
-    display: block; padding: 8px 16px;
-    background: rgba(0,0,0,.12);
-    font-size: .8rem; text-decoration: none; color: inherit;
-    transition: background .15s;
-  }
-  .kpi-card .footer-link:hover { background: rgba(0,0,0,.2); }
-
-  .stat-mini { border-left: 4px solid; padding: 10px 14px; border-radius: 6px; background: #fff; margin-bottom: 10px; }
-  .stat-mini .val { font-size: 1.5rem; font-weight: 700; line-height: 1; }
-  .stat-mini .lbl { font-size: .75rem; color: #888; margin-top: 2px; }
-
-  .activity-badge { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .8rem; flex-shrink: 0; }
-  .timeline-item { display: flex; gap: 12px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid #f0f0f0; }
-  .timeline-item:last-child { border-bottom: none; }
-
-  .notebook-row:hover { background: #f8f9fa; }
-  .score-bar { height: 6px; border-radius: 3px; background: #e9ecef; overflow: hidden; }
-  .score-bar-fill { height: 100%; border-radius: 3px; transition: width .6s ease; }
-
-  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-  .section-header h5 { margin: 0; font-weight: 700; font-size: 1rem; }
-</style>
-{% endblock %}
-
 {% block content %}
 
-<!-- ═══ ROW 1 — KPI Cards ═══════════════════════════════════════════════════ -->
+<!-- ═══ ROW 1 — KPI Cards (AdminLTE small-box) ════════════════════════════════ -->
 <div class="row">
-
-  <!-- Materias Públicas -->
-  <div class="col-xl-3 col-md-6 mb-3">
-    <div class="kpi-card bg-info text-white">
-      <div class="inner">
-        <h3>{{ total_subjects }} <sup style="font-size:1.1rem">+{{ student_subjects }}</sup></h3>
-        <p>Materias Públicas + Cuadernos</p>
-      </div>
-      <div class="icon"><i class="fas fa-book-open"></i></div>
-      <a href="{% url 'study:dashboard' %}" class="footer-link">
-        Ver todas &nbsp;<i class="fas fa-arrow-circle-right"></i>
-      </a>
-    </div>
-  </div>
-
-  <!-- Archivos -->
-  <div class="col-xl-3 col-md-6 mb-3">
-    <div class="kpi-card bg-success text-white">
-      <div class="inner">
-        <h3>{{ total_files }}</h3>
-        <p>Archivos de Estudio (JSON)</p>
-      </div>
-      <div class="icon"><i class="fas fa-file-alt"></i></div>
-      <a href="{% url 'study:dashboard' %}" class="footer-link">
-        Gestionar &nbsp;<i class="fas fa-arrow-circle-right"></i>
-      </a>
-    </div>
-  </div>
-
-  <!-- Preguntas -->
-  <div class="col-xl-3 col-md-6 mb-3">
-    <div class="kpi-card bg-warning text-white">
-      <div class="inner">
-        <h3>{{ total_questions }}</h3>
-        <p>Preguntas en el Banco</p>
-      </div>
-      <div class="icon"><i class="fas fa-question-circle"></i></div>
-      <a href="{% url 'study:question_bank' %}" class="footer-link">
-        Ver banco de preguntas &nbsp;<i class="fas fa-arrow-circle-right"></i>
-      </a>
-    </div>
-  </div>
-
-  <!-- Usuarios -->
-  <div class="col-xl-3 col-md-6 mb-3">
-    <div class="kpi-card bg-danger text-white">
+  <!-- Users -->
+  <div class="col-lg-3 col-6">
+    <div class="small-box bg-info">
       <div class="inner">
         <h3>{{ total_users }}</h3>
         <p>Usuarios Registrados</p>
       </div>
-      <div class="icon"><i class="fas fa-users"></i></div>
-      <a href="{% url 'study:manage_users' %}" class="footer-link">
-        Administrar usuarios &nbsp;<i class="fas fa-arrow-circle-right"></i>
-      </a>
+      <div class="icon">
+        <i class="fas fa-users"></i>
+      </div>
+      <a href="{% url 'study:manage_users' %}" class="small-box-footer">Gestión <i class="fas fa-arrow-circle-right"></i></a>
     </div>
   </div>
 
-</div><!-- /.row KPI -->
-
-<!-- ═══ ROW 2 — Stat mini + Actions ════════════════════════════════════════ -->
-<div class="row mb-3">
-  <div class="col-md-8">
-    <div class="row">
-      <div class="col-sm-4">
-        <div class="stat-mini" style="border-color:#3c8dbc">
-          <div class="val text-info">{{ total_sessions }}</div>
-          <div class="lbl">Sesiones de Estudio</div>
-        </div>
+  <!-- Subjects -->
+  <div class="col-lg-3 col-6">
+    <div class="small-box bg-success">
+      <div class="inner">
+        <h3>{{ total_subjects }}</h3>
+        <p>Materias Totales</p>
       </div>
-      <div class="col-sm-4">
-        <div class="stat-mini" style="border-color:#00a65a">
-          <div class="val text-success">{{ public_notebooks }}</div>
-          <div class="lbl">Cuadernos Públicos</div>
-        </div>
+      <div class="icon">
+        <i class="fas fa-book"></i>
       </div>
-      <div class="col-sm-4">
-        <div class="stat-mini" style="border-color:#dd4b39">
-          <div class="val text-danger">{{ student_subjects }}</div>
-          <div class="lbl">Cuadernos Privados</div>
-        </div>
-      </div>
+      <a href="{% url 'study:dashboard' %}" class="small-box-footer">Ver todas <i class="fas fa-arrow-circle-right"></i></a>
     </div>
   </div>
-  <div class="col-md-4 d-flex align-items-start flex-column gap-2">
-    <a href="{% url 'study:generate_report_pdf' %}" class="btn btn-danger btn-block">
-      <i class="fas fa-file-pdf mr-1"></i> Descargar Reporte PDF
-    </a>
-    <a href="{% url 'study:manage_pages' %}" class="btn btn-primary btn-block">
-      <i class="fas fa-file-code mr-1"></i> Gestionar Páginas
-    </a>
+
+  <!-- Public / Private -->
+  <div class="col-lg-3 col-6">
+    <div class="small-box bg-warning">
+      <div class="inner">
+        <h3>{{ public_notebooks }} / {{ private_notebooks }}</h3>
+        <p>Cuadernos (Público / Privado)</p>
+      </div>
+      <div class="icon">
+        <i class="fas fa-lock-open"></i>
+      </div>
+      <a href="{% url 'study:dashboard' %}" class="small-box-footer">Ver cuadernos <i class="fas fa-arrow-circle-right"></i></a>
+    </div>
+  </div>
+
+  <!-- Sessions -->
+  <div class="col-lg-3 col-6">
+    <div class="small-box bg-danger">
+      <div class="inner">
+        <h3>{{ total_sessions }}</h3>
+        <p>Sesiones Completadas</p>
+      </div>
+      <div class="icon">
+        <i class="fas fa-pencil-alt"></i>
+      </div>
+      <a href="#" class="small-box-footer">Reportes <i class="fas fa-arrow-circle-right"></i></a>
+    </div>
   </div>
 </div>
 
-<!-- ═══ ROW 3 — Chart + Private Notebooks ══════════════════════════════════ -->
+<!-- ═══ ROW 2 — Content ═══════════════════════════════════════════════════════ -->
 <div class="row">
-
-  <!-- Chart -->
-  <div class="col-lg-7">
-    <div class="card card-primary card-outline">
-      <div class="card-header">
-        <div class="section-header">
-          <h5><i class="fas fa-chart-bar mr-1 text-primary"></i> Archivos por Materia Pública</h5>
-          <span class="badge badge-primary badge-pill">{{ total_subjects }} materias</span>
-        </div>
-      </div>
-      <div class="card-body">
-        <canvas id="myChart" style="min-height:260px;max-height:260px;"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <!-- Private Notebooks -->
-  <div class="col-lg-5">
-    <div class="card card-warning card-outline">
-      <div class="card-header">
-        <div class="section-header">
-          <h5><i class="fas fa-lock mr-1 text-warning"></i> Cuadernos Privados / Públicos de Estudiantes</h5>
-          <span class="badge badge-warning badge-pill">{{ student_subjects }}</span>
-        </div>
+  <!-- Activity Feed -->
+  <div class="col-md-7">
+    <div class="card">
+      <div class="card-header border-transparent">
+        <h3 class="card-title"><i class="fas fa-history mr-1"></i> Actividad Reciente</h3>
       </div>
       <div class="card-body p-0">
-        <div class="table-responsive" style="max-height:280px;overflow-y:auto;">
-          <table class="table table-sm table-hover mb-0">
-            <thead class="thead-light">
+        <div class="table-responsive">
+          <table class="table m-0">
+            <thead>
               <tr>
-                <th>Cuaderno</th>
-                <th>Propietario</th>
-                <th>Estado</th>
-                <th>Archivos</th>
+                <th>Usuario</th>
+                <th>Acción</th>
+                <th>Fecha</th>
               </tr>
             </thead>
             <tbody>
-              {% for nb in private_notebooks %}
-              <tr class="notebook-row">
-                <td class="font-weight-bold">{{ nb.name|truncatechars:22 }}</td>
+              {% for log in activity_logs %}
+              <tr>
+                <td>{{ log.user.username }}</td>
+                <td>{{ log.action }}</td>
                 <td>
-                  <span class="badge badge-secondary">
-                    <i class="fas fa-user mr-1"></i>{{ nb.owner.username }}
-                  </span>
+                  <div class="sparkbar" data-color="#00a65a" data-height="20">{{ log.timestamp|date:"d M H:i" }}</div>
                 </td>
-                <td>
-                  {% if nb.is_public %}
-                    <span class="badge badge-success"><i class="fas fa-globe mr-1"></i>Público</span>
-                  {% else %}
-                    <span class="badge badge-danger"><i class="fas fa-lock mr-1"></i>Privado</span>
-                  {% endif %}
-                </td>
-                <td><span class="badge badge-info">{{ nb.files.count }}</span></td>
               </tr>
               {% empty %}
-              <tr><td colspan="4" class="text-center text-muted py-3">No hay cuadernos de estudiantes.</td></tr>
+              <tr><td colspan="3" class="text-center text-muted">No hay actividad reciente</td></tr>
               {% endfor %}
             </tbody>
           </table>
         </div>
       </div>
-      <div class="card-footer text-right p-2">
-        <a href="{% url 'study:dashboard' %}" class="btn btn-xs btn-outline-warning">Ver todos</a>
-      </div>
     </div>
   </div>
 
-</div><!-- /.row chart+notebooks -->
-
-<!-- ═══ ROW 4 — Recent Sessions + Activity ═════════════════════════════════ -->
-<div class="row">
-
-  <!-- Recent Sessions -->
-  <div class="col-lg-7">
-    <div class="card card-success card-outline">
-      <div class="card-header">
-        <div class="section-header">
-          <h5><i class="fas fa-graduation-cap mr-1 text-success"></i> Sesiones de Estudio Recientes</h5>
-          <a href="{% url 'study:generate_report_pdf' %}" class="btn btn-xs btn-outline-success">
-            <i class="fas fa-file-pdf mr-1"></i>PDF
+  <!-- Admin Reports & Actions -->
+  <div class="col-md-5">
+    <div class="info-box mb-3 bg-primary">
+      <span class="info-box-icon"><i class="fas fa-file-pdf"></i></span>
+      <div class="info-box-content">
+        <span class="info-box-text">Reporte General</span>
+        <span class="info-box-number">
+          <a href="{% url 'study:generate_report_pdf' %}" class="btn btn-sm btn-light mt-1">
+            <i class="fas fa-download mr-1"></i> Descargar PDF
           </a>
-        </div>
-      </div>
-      <div class="card-body p-0">
-        <table class="table table-sm mb-0">
-          <thead class="thead-light">
-            <tr>
-              <th>Usuario</th>
-              <th>Materia</th>
-              <th>Modo</th>
-              <th>Puntaje</th>
-              <th>Fecha</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for s in recent_sessions %}
-            <tr>
-              <td>
-                <span class="badge badge-secondary">{{ s.user.username }}</span>
-              </td>
-              <td class="text-truncate" style="max-width:120px">
-                {{ s.subject.name|default:"—"|truncatechars:18 }}
-              </td>
-              <td>
-                {% if s.mode == 'test' %}
-                  <span class="badge badge-info">Práctica</span>
-                {% else %}
-                  <span class="badge badge-primary">Repaso</span>
-                {% endif %}
-              </td>
-              <td>
-                {% if s.total_questions > 0 %}
-                  <div class="score-bar" style="width:80px">
-                    <div class="score-bar-fill bg-{% if s.score_percent >= 70 %}success{% elif s.score_percent >= 40 %}warning{% else %}danger{% endif %}"
-                         style="width:{{ s.score_percent }}%"></div>
-                  </div>
-                  <small class="text-muted">{{ s.score_percent }}%</small>
-                {% else %}
-                  <small class="text-muted">En curso</small>
-                {% endif %}
-              </td>
-              <td><small class="text-muted">{{ s.started_at|date:"d M H:i" }}</small></td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="5" class="text-center text-muted py-3">No hay sesiones registradas.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- Activity + Top students -->
-  <div class="col-lg-5">
-
-    <!-- Activity Log -->
-    <div class="card card-info card-outline">
-      <div class="card-header">
-        <div class="section-header">
-          <h5><i class="fas fa-stream mr-1 text-info"></i> Actividad Reciente</h5>
-          <span class="badge badge-info">Live</span>
-        </div>
-      </div>
-      <div class="card-body" style="max-height:200px;overflow-y:auto;padding:10px 14px;">
-        {% for log in recent_activity %}
-        <div class="timeline-item">
-          <div class="activity-badge
-            {% if log.action == 'login' %}bg-info text-white
-            {% elif log.action == 'register' %}bg-success text-white
-            {% elif log.action == 'complete_quiz' %}bg-warning text-white
-            {% elif log.action == 'delete_subject' or log.action == 'delete_file' %}bg-danger text-white
-            {% else %}bg-secondary text-white{% endif %}">
-            <i class="fas
-              {% if log.action == 'login' %}fa-sign-in-alt
-              {% elif log.action == 'register' %}fa-user-plus
-              {% elif log.action == 'complete_quiz' %}fa-check
-              {% elif log.action == 'upload_file' %}fa-upload
-              {% elif log.action == 'make_public' %}fa-globe
-              {% else %}fa-circle{% endif %}"></i>
-          </div>
-          <div style="flex:1;min-width:0;">
-            <div class="font-weight-bold text-sm" style="font-size:.82rem;">
-              {{ log.user.username|default:"Anónimo" }}
-              <span class="text-muted font-weight-normal">— {{ log.get_action_display }}</span>
-            </div>
-            {% if log.description %}
-              <div class="text-muted" style="font-size:.75rem;">{{ log.description|truncatechars:45 }}</div>
-            {% endif %}
-            <div class="text-muted" style="font-size:.72rem;">{{ log.created_at|date:"d M, H:i" }}</div>
-          </div>
-        </div>
-        {% empty %}
-        <p class="text-muted text-center">Sin actividad registrada.</p>
-        {% endfor %}
+        </span>
       </div>
     </div>
 
-    <!-- Top Students -->
-    <div class="card card-danger card-outline">
+    <div class="info-box mb-3 bg-success">
+      <span class="info-box-icon"><i class="fas fa-file-code"></i></span>
+      <div class="info-box-content">
+        <span class="info-box-text">Páginas Dinámicas</span>
+        <span class="info-box-number">
+          <a href="{% url 'study:manage_pages' %}" class="btn btn-sm btn-light mt-1">
+            <i class="fas fa-cogs mr-1"></i> Gestionar Páginas
+          </a>
+        </span>
+      </div>
+    </div>
+
+    <!-- Mini Leaderboard -->
+    <div class="card">
       <div class="card-header">
-        <h5 class="mb-0" style="font-weight:700;font-size:1rem;">
-          <i class="fas fa-trophy mr-1 text-warning"></i> Top Estudiantes
-        </h5>
+        <h3 class="card-title"><i class="fas fa-trophy mr-1 text-warning"></i> Mejores Puntuaciones</h3>
       </div>
       <div class="card-body p-0">
-        <ul class="list-group list-group-flush">
-          {% for student in top_students %}
-          <li class="list-group-item d-flex justify-content-between align-items-center py-2">
-            <span>
-              <span class="badge badge-pill badge-warning mr-2">{{ forloop.counter }}</span>
-              <strong>{{ student.username }}</strong>
-            </span>
-            <span class="badge badge-primary badge-pill">{{ student.session_count }} sesiones</span>
+        <ul class="users-list clearfix">
+          {% for session in recent_sessions|slice:":4" %}
+          <li style="width: 25%;">
+            <img src="{% static 'dist/img/avatar.png' %}" alt="User Image">
+            <a class="users-list-name" href="#">{{ session.user.username }}</a>
+            <span class="users-list-date">{{ session.score_percent }}%</span>
           </li>
           {% empty %}
-          <li class="list-group-item text-muted text-center">Sin datos todavía.</li>
+          <li class="w-100 text-center text-muted py-3">No hay sesiones</li>
           {% endfor %}
         </ul>
-      </div>
-      <div class="card-footer text-right p-2">
-        <a href="{% url 'study:manage_users' %}" class="btn btn-xs btn-outline-danger">
-          <i class="fas fa-users mr-1"></i>Todos los usuarios
-        </a>
-      </div>
-    </div>
-
-  </div>
-</div><!-- /.row sessions+activity -->
-
-<!-- ═══ ROW 5 — Quick Actions ═══════════════════════════════════════════════ -->
-<div class="row">
-  <div class="col-12">
-    <div class="card card-outline card-secondary">
-      <div class="card-header">
-        <h5 class="mb-0" style="font-weight:700;font-size:1rem;">
-          <i class="fas fa-bolt mr-1 text-secondary"></i> Acciones Rápidas
-        </h5>
-      </div>
-      <div class="card-body">
-        <div class="row text-center">
-          <div class="col-6 col-md-2 mb-2">
-            <a href="{% url 'study:manage_users' %}" class="btn btn-block btn-outline-danger py-3">
-              <i class="fas fa-users d-block mb-1" style="font-size:1.5rem"></i>
-              <small>Usuarios</small>
-            </a>
-          </div>
-          <div class="col-6 col-md-2 mb-2">
-            <a href="{% url 'study:question_bank' %}" class="btn btn-block btn-outline-warning py-3">
-              <i class="fas fa-database d-block mb-1" style="font-size:1.5rem"></i>
-              <small>Banco Preguntas</small>
-            </a>
-          </div>
-          <div class="col-6 col-md-2 mb-2">
-            <a href="{% url 'study:manage_pages' %}" class="btn btn-block btn-outline-primary py-3">
-              <i class="fas fa-file-code d-block mb-1" style="font-size:1.5rem"></i>
-              <small>Páginas</small>
-            </a>
-          </div>
-          <div class="col-6 col-md-2 mb-2">
-            <a href="{% url 'study:generate_report_pdf' %}" class="btn btn-block btn-outline-danger py-3">
-              <i class="fas fa-file-pdf d-block mb-1" style="font-size:1.5rem"></i>
-              <small>Reporte PDF</small>
-            </a>
-          </div>
-          <div class="col-6 col-md-2 mb-2">
-            <a href="{% url 'study:dashboard' %}" class="btn btn-block btn-outline-success py-3">
-              <i class="fas fa-book d-block mb-1" style="font-size:1.5rem"></i>
-              <small>Materias</small>
-            </a>
-          </div>
-          <div class="col-6 col-md-2 mb-2">
-            <a href="/admin/" class="btn btn-block btn-outline-secondary py-3">
-              <i class="fas fa-cog d-block mb-1" style="font-size:1.5rem"></i>
-              <small>Django Admin</small>
-            </a>
-          </div>
-        </div>
       </div>
     </div>
   </div>
 </div>
-
-{% endblock %}
-
-{% block extra_js %}
-<script src="{% static 'plugins/chart.js/Chart.min.js' %}"></script>
-<script>
-$(function () {
-  var labels = JSON.parse('{{ subjects_labels|escapejs }}');
-  var data   = JSON.parse('{{ files_data|escapejs }}');
-
-  if (!labels.length) { labels = ['Sin datos']; data = [0]; }
-
-  var colors = labels.map(function(_, i) {
-    var palette = ['#3c8dbc','#00a65a','#f39c12','#dd4b39','#605ca8','#39cccc','#e08e0b','#d81b60'];
-    return palette[i % palette.length];
-  });
-
-  new Chart($('#myChart').get(0).getContext('2d'), {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: 'Archivos',
-        data: data,
-        backgroundColor: colors,
-        borderColor: colors,
-        borderWidth: 1,
-        borderRadius: 6,
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      legend: { display: false },
-      scales: {
-        yAxes: [{ ticks: { beginAtZero: true, precision: 0 }, gridLines: { color: '#f0f0f0' } }],
-        xAxes: [{ gridLines: { display: false } }]
-      }
-    }
-  });
-});
-</script>
 {% endblock %}
