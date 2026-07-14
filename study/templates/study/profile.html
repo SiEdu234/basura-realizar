@@ -106,16 +106,18 @@ $(function () {
     if (!selectedFile) return;
     var reader = new FileReader();
     reader.onload = function(e) {
+      // Esperamos a que la imagen tenga sus dimensiones reales antes de iniciar Cropper
+      image.onload = function() {
+        if (cropper) { cropper.destroy(); }
+        cropper = new Cropper(image, {
+          aspectRatio: 1,
+          viewMode: 1,
+          autoCropArea: 0.8,
+          dragMode: 'move',
+          responsive: true,
+        });
+      };
       image.src = e.target.result;
-      // Paso 3: la imagen ya tiene src, inicializar cropper
-      if (cropper) { cropper.destroy(); }
-      cropper = new Cropper(image, {
-        aspectRatio: 1,
-        viewMode: 1,
-        autoCropArea: 0.8,
-        dragMode: 'move',
-        responsive: true,
-      });
     };
     reader.readAsDataURL(selectedFile);
   });
