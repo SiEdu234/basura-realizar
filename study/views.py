@@ -32,12 +32,9 @@ def profile_view(request):
     profile, created = UserProfile.objects.get_or_create(user=request.user)
     
     if request.method == 'POST':
-        avatar_base64 = request.POST.get('avatar_base64')
-        if avatar_base64:
-            format, imgstr = avatar_base64.split(';base64,')
-            ext = format.split('/')[-1]
-            data = ContentFile(base64.b64decode(imgstr), name=f'avatar_{request.user.id}.{ext}')
-            profile.avatar = data
+        avatar = request.FILES.get('avatar')
+        if avatar:
+            profile.avatar = avatar
             profile.save()
             messages.success(request, '¡Foto de perfil actualizada exitosamente!')
             return redirect('study:profile_view')
