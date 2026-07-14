@@ -108,12 +108,14 @@ def admin_dashboard(request):
     recent_sessions = QuizSession.objects.select_related('user', 'subject').order_by('-started_at')[:8]
 
     # Private notebooks for admin review
-    private_notebooks = Subject.objects.filter(owner__isnull=False).select_related('owner').order_by('-created_at')[:10]
+    private_notebooks = Subject.objects.filter(owner__isnull=False, is_public=False).order_by('-created_at')[:10]
+    private_notebooks_count = Subject.objects.filter(owner__isnull=False, is_public=False).count()
 
     context = {
         'total_subjects': total_subjects,
         'student_subjects': student_subjects,
         'public_notebooks': public_notebooks,
+        'private_notebooks_count': private_notebooks_count,
         'total_files': total_files,
         'total_users': total_users,
         'total_sessions': total_sessions,
@@ -267,40 +269,6 @@ def delete_file(request, file_id):
         file_obj.delete()
         messages.success(request, 'Archivo eliminado.')
     return redirect('study:subject_detail', subject_id=subject_id)
-
-
-# ─── QUESTION BANK ───────────────────────────────────────────────────────────
-
-@login_required
-def question_bank(request):
-    """Full question bank view, separated by JSON files."""
-    if not request.user.is_staff:
-        return redirect('study:dashboard')
-
-    files = File.objects.select_related('subject', 'uploaded_by').order_by('subject__name', 'name')
-    bank = []
-    total_q = 0
-
-    for f in files:
-        questions = []
-        if isinstance(f.data, list):
-            questions = f.data
-        elif isinstance(f.data, dict) and 'questions' in f.data:
-            questions = f.data['questions']
-
-        total_q += len(questions)
-        bank.append({
-            'file': f,
-            'questions': questions,
-            'count': len(questions),
-        })
-
-    context = {
-        'bank': bank,
-        'total_questions': total_q,
-        'total_files': len(bank),
-    }
-    return render(request, 'study/question_bank.html', context)
 
 
 # ─── QUIZ / SESSION ───────────────────────────────────────────────────────────
@@ -833,17 +801,22 @@ def flashcard_create(request, subject_id):
         return JsonResponse({'success': False, 'error': 'Sin permisos'})
     if request.method == 'POST':
         try:
-            data = json.loads(request.body)
-            card = Flashcard.objects.create(
-                subject=subject,
-                owner=request.user,
-                front=data.get('front', '').strip(),
-                back=data.get('back', '').strip(),
-            )
-            return JsonResponse({'success': True, 'id': str(card.id)})
+            front = request.POST.get('front', '').strip()
+            back = request.POST.get('back', '').strip()
+            if front and back:
+                Flashcard.objects.create(
+                    subject=subject,
+                    owner=request.user,
+                    front=front,
+                    back=back,
+                )
+                messages.success(request, 'Tarjeta creada exitosamente.')
+            else:
+                messages.error(request, 'Ambos campos son obligatorios.')
         except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
-    return JsonResponse({'success': False})
+            messages.error(request, f'Error: {str(e)}')
+        return redirect('study:flashcards_list', subject_id=subject.id)
+    return redirect('study:flashcards_list', subject_id=subject.id)
 
 
 @csrf_exempt

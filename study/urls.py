@@ -23,8 +23,7 @@ urlpatterns = [
     path('quiz/<uuid:subject_id>/', views.quiz_runner, name='quiz_runner'),
     path('quiz/save-result/', views.save_quiz_result, name='save_quiz_result'),
 
-    # Question Bank (admin)
-    path('question-bank/', views.question_bank, name='question_bank'),
+    # (Banco de Preguntas removed as requested)
 
     # User Management (admin)
     path('users/', views.manage_users, name='manage_users'),
