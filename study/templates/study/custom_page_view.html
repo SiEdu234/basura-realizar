@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page.title }} — Study Admin{% endblock %}
+{% block page_title %}{{ page.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .page-meta { color: #888; font-size: .85rem; margin-bottom: 20px; }
+  .page-content { line-height: 1.7; }
+  .page-content h1, .page-content h2, .page-content h3 { margin-top: 1.2em; }
+  .page-content table { width: 100%; border-collapse: collapse; margin: 1em 0; }
+  .page-content table td, .page-content table th { border: 1px solid #dee2e6; padding: 8px 12px; }
+  .page-content table th { background: #f4f6f9; }
+  .page-content img { max-width: 100%; border-radius: 6px; }
+  .page-content pre { background: #282a36; color: #f8f8f2; padding: 14px; border-radius: 6px; overflow-x: auto; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="row">
+  <div class="col-lg-9">
+    <div class="card">
+      <div class="card-body">
+        <div class="page-meta">
+          <i class="fas fa-calendar mr-1"></i> {{ page.created_at|date:"d de F Y" }}
+          {% if page.created_by %}
+          &nbsp;·&nbsp; <i class="fas fa-user mr-1"></i> {{ page.created_by.username }}
+          {% endif %}
+          {% if page.meta_description %}
+          &nbsp;·&nbsp; <em>{{ page.meta_description }}</em>
+          {% endif %}
+        </div>
+        <hr>
+        <div class="page-content">
+          {{ page.content|safe }}
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-3">
+    <div class="card">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="fas fa-file-alt mr-1"></i> Otras páginas</h6>
+      </div>
+      <div class="list-group list-group-flush">
+        {% for pg in nav_pages %}
+        <a href="{% url 'custom_page' pg.slug %}"
+           class="list-group-item list-group-item-action {% if pg == page %}active{% endif %}">
+          <i class="fas fa-chevron-right mr-1" style="font-size:.75rem;"></i>
+          {{ pg.title }}
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% if user.is_staff %}
+    <div class="card mt-2">
+      <div class="card-body py-2">
+        <a href="{% url 'study:edit_page' page.id %}" class="btn btn-primary btn-sm btn-block">
+          <i class="fas fa-edit mr-1"></i> Editar esta página
+        </a>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

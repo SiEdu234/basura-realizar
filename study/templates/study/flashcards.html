@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Tarjetas — {{ subject.name }}{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+{% block page_title %}Tarjetas de Memoria — {{ subject.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .flashcard-container { perspective: 1000px; }
+  .flashcard {
+    width: 100%; height: 220px;
+    position: relative; transform-style: preserve-3d;
+    transition: transform .6s cubic-bezier(.4,.2,.2,1);
+    cursor: pointer; border-radius: 14px;
+  }
+  .flashcard.flipped { transform: rotateY(180deg); }
+  .flashcard-face {
+    position: absolute; width: 100%; height: 100%;
+    backface-visibility: hidden; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column; padding: 24px; text-align: center;
+    box-shadow: 0 6px 24px rgba(0,0,0,.12);
+  }
+  .flashcard-front { background: linear-gradient(135deg, #3c8dbc, #1a5e8a); color: #fff; }
+  .flashcard-back  { background: linear-gradient(135deg, #00a65a, #007a43); color: #fff; transform: rotateY(180deg); }
+  .flashcard-face h4 { font-size: 1.1rem; font-weight: 700; margin: 0; }
+  .flashcard-face .face-label {
+    position: absolute; top: 12px; left: 14px;
+    font-size: .7rem; opacity: .7; text-transform: uppercase; letter-spacing: 1px;
+  }
+  .flashcard-face .flip-hint {
+    position: absolute; bottom: 10px; right: 14px;
+    font-size: .72rem; opacity: .6;
+  }
+
+  .difficulty-btns .btn { border-radius: 20px; font-size: .8rem; padding: 6px 16px; }
+  .card-item {
+    border-left: 4px solid #3c8dbc; border-radius: 8px;
+    transition: box-shadow .2s;
+  }
+  .card-item:hover { box-shadow: 0 4px 16px rgba(0,0,0,.1); }
+  .difficulty-dot {
+    width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 4px;
+  }
+  .coming-soon-banner {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 12px; color: #fff; text-align: center; padding: 30px 20px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Coming Soon Banner -->
+<div class="coming-soon-banner mb-4">
+  <i class="fas fa-layer-group d-block mb-2" style="font-size:2.5rem;opacity:.8;"></i>
+  <h4 class="mb-1">🃏 Tarjetas de Memoria</h4>
+  <p class="mb-2" style="opacity:.9;">Sistema de repaso con repetición espaciada (Spaced Repetition). <strong>Soporte activo.</strong></p>
+  <span class="badge" style="background:rgba(255,255,255,.25);font-size:.85rem;padding:6px 14px;">
+    <i class="fas fa-rocket mr-1"></i> Funcionalidad habilitada
+  </span>
+</div>
+
+<div class="row">
+
+  <!-- Flashcard Viewer -->
+  <div class="col-lg-5 mb-4">
+    <div class="card card-primary card-outline">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-eye mr-1"></i> Sesión de Repaso</h5>
+      </div>
+      <div class="card-body">
+        {% if cards %}
+        <div id="reviewSession">
+          <div class="text-center mb-2">
+            <small class="text-muted">Tarjeta <span id="cardIndex">1</span> de <span id="cardTotal">{{ cards|length }}</span></small>
+            <div class="progress mt-1" style="height:4px;">
+              <div class="progress-bar bg-primary" id="reviewProgress" style="width:0%"></div>
+            </div>
+          </div>
+          <div class="flashcard-container mb-3">
+            <div class="flashcard" id="currentCard" onclick="flipCard()">
+              <div class="flashcard-face flashcard-front">
+                <span class="face-label">Pregunta / Término</span>
+                <h4 id="cardFront">{{ cards.0.front }}</h4>
+                <span class="flip-hint"><i class="fas fa-sync-alt mr-1"></i>Clic para voltear</span>
+              </div>
+              <div class="flashcard-face flashcard-back">
+                <span class="face-label">Respuesta / Definición</span>
+                <h4 id="cardBack">{{ cards.0.back }}</h4>
+                <span class="flip-hint"><i class="fas fa-sync-alt mr-1"></i>Clic para voltear</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Difficulty rating (shows after flip) -->
+          <div id="difficultyRating" class="text-center" style="display:none;">
+            <p class="text-muted mb-2"><small>¿Qué tan difícil fue?</small></p>
+            <div class="difficulty-btns d-flex justify-content-center gap-2">
+              <button class="btn btn-success btn-sm" onclick="rateCard(1)">
+                <i class="fas fa-smile mr-1"></i>Fácil
+              </button>
+              <button class="btn btn-warning btn-sm" onclick="rateCard(2)">
+                <i class="fas fa-meh mr-1"></i>Medio
+              </button>
+              <button class="btn btn-danger btn-sm" onclick="rateCard(3)">
+                <i class="fas fa-frown mr-1"></i>Difícil
+              </button>
+            </div>
+          </div>
+          <div class="text-center mt-2" id="sessionDone" style="display:none;">
+            <i class="fas fa-trophy text-warning" style="font-size:2rem;"></i>
+            <p class="mt-2 font-weight-bold">¡Sesión completada!</p>
+            <button class="btn btn-primary btn-sm" onclick="restartSession()">
+              <i class="fas fa-redo mr-1"></i>Reiniciar
+            </button>
+          </div>
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+          <i class="fas fa-layer-group" style="font-size:3rem;color:#dee2e6;"></i>
+          <p class="text-muted mt-2">No hay tarjetas. ¡Crea la primera!</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Create + List -->
+  <div class="col-lg-7">
+
+    <!-- Create Card -->
+    {% if request.user == subject.owner or request.user.is_staff %}
+    <div class="card card-success card-outline mb-3">
+      <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-plus-circle mr-1"></i> Nueva Tarjeta</h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6">
+            <div class="form-group">
+              <label class="font-weight-bold">Frente (Pregunta/Término)</label>
+              <textarea id="newFront" class="form-control" rows="3" placeholder="¿Qué es la fotosíntesis?"></textarea>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="form-group">
+              <label class="font-weight-bold">Reverso (Respuesta/Definición)</label>
+              <textarea id="newBack" class="form-control" rows="3" placeholder="Proceso por el que las plantas..."></textarea>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-success" onclick="createCard()">
+          <i class="fas fa-plus mr-1"></i> Crear Tarjeta
+        </button>
+        <span id="createStatus" class="ml-2 text-success" style="display:none;">
+          <i class="fas fa-check mr-1"></i>¡Creada!
+        </span>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Cards List -->
+    <div class="card card-info card-outline">
+      <div class="card-header">
+        <h5 class="mb-0">
+          <i class="fas fa-list mr-1"></i> Mis Tarjetas
+          <span class="badge badge-info ml-1">{{ cards|length }}</span>
+        </h5>
+      </div>
+      <div class="card-body p-0">
+        <div style="max-height:400px;overflow-y:auto;">
+          {% for card in cards %}
+          <div class="card-item bg-white p-3 mb-1 mx-2 mt-2">
+            <div class="d-flex justify-content-between align-items-start">
+              <div style="flex:1;min-width:0;">
+                <div class="font-weight-bold mb-1" style="font-size:.9rem;">{{ card.front|truncatechars:60 }}</div>
+                <div class="text-muted" style="font-size:.82rem;">{{ card.back|truncatechars:80 }}</div>
+                <div class="mt-1">
+                  {% if card.difficulty == 0 %}
+                    <span class="badge badge-secondary">Nueva</span>
+                  {% elif card.difficulty == 1 %}
+                    <span class="badge badge-success">Fácil</span>
+                  {% elif card.difficulty == 2 %}
+                    <span class="badge badge-warning">Medio</span>
+                  {% else %}
+                    <span class="badge badge-danger">Difícil</span>
+                  {% endif %}
+                  <small class="text-muted ml-1">{{ card.review_count }} repasos</small>
+                  {% if card.next_review %}
+                  <small class="text-muted ml-1">· Próximo: {{ card.next_review|date:"d M" }}</small>
+                  {% endif %}
+                </div>
+              </div>
+              {% if request.user == card.owner or request.user.is_staff %}
+              <form action="{% url 'study:delete_flashcard' card.id %}" method="post" class="ml-2">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-xs btn-light text-danger"
+                        onclick="return confirm('¿Eliminar esta tarjeta?')">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </div>
+          {% empty %}
+          <div class="text-center py-4 text-muted">
+            <i class="fas fa-layer-group mr-1"></i> Aún no hay tarjetas.
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+var cardsData = [];
+{% for card in cards %}
+cardsData.push({id:'{{ card.id }}', front:'{{ card.front|escapejs }}', back:'{{ card.back|escapejs }}'});
+{% endfor %}
+
+var currentIdx = 0;
+var isFlipped = false;
+
+function updateCardDisplay() {
+  if (!cardsData.length) return;
+  var card = cardsData[currentIdx];
+  document.getElementById('cardFront').textContent = card.front;
+  document.getElementById('cardBack').textContent = card.back;
+  document.getElementById('cardIndex').textContent = currentIdx + 1;
+  document.getElementById('cardTotal').textContent = cardsData.length;
+  var pct = ((currentIdx) / cardsData.length * 100).toFixed(0);
+  document.getElementById('reviewProgress').style.width = pct + '%';
+
+  // Reset flip
+  isFlipped = false;
+  document.getElementById('currentCard').classList.remove('flipped');
+  document.getElementById('difficultyRating').style.display = 'none';
+}
+
+function flipCard() {
+  isFlipped = !isFlipped;
+  document.getElementById('currentCard').classList.toggle('flipped', isFlipped);
+  if (isFlipped) {
+    document.getElementById('difficultyRating').style.display = 'block';
+  }
+}
+
+function rateCard(difficulty) {
+  var card = cardsData[currentIdx];
+  // Send rating via AJAX
+  fetch('/study/flashcard/' + card.id + '/review/', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+    body: JSON.stringify({difficulty: difficulty})
+  });
+
+  currentIdx++;
+  if (currentIdx >= cardsData.length) {
+    document.getElementById('reviewProgress').style.width = '100%';
+    document.getElementById('reviewSession').querySelector('.flashcard-container').style.display = 'none';
+    document.getElementById('difficultyRating').style.display = 'none';
+    document.getElementById('sessionDone').style.display = 'block';
+  } else {
+    updateCardDisplay();
+  }
+}
+
+function restartSession() {
+  currentIdx = 0;
+  document.getElementById('reviewSession').querySelector('.flashcard-container').style.display = 'block';
+  document.getElementById('sessionDone').style.display = 'none';
+  updateCardDisplay();
+}
+
+// Create card
+function createCard() {
+  var front = document.getElementById('newFront').value.trim();
+  var back  = document.getElementById('newBack').value.trim();
+  if (!front || !back) { alert('Ambos campos son requeridos.'); return; }
+
+  fetch('{% url "study:flashcard_create" subject.id %}', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+    body: JSON.stringify({front: front, back: back})
+  })
+  .then(r => r.json())
+  .then(function(data) {
+    if (data.success) {
+      document.getElementById('newFront').value = '';
+      document.getElementById('newBack').value = '';
+      var st = document.getElementById('createStatus');
+      st.style.display = 'inline';
+      setTimeout(function(){ st.style.display = 'none'; location.reload(); }, 1000);
+    }
+  });
+}
+
+function getCookie(name) {
+  var v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+  return v ? v[2] : null;
+}
+
+if (cardsData.length) updateCardDisplay();
+</script>
+{% endblock %}

@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block title %}Gestionar Usuarios — Study Admin{% endblock %}
+{% block nav_users %}active{% endblock %}
+{% block page_title %}Gestión de Usuarios{% endblock %}
+
+{% block extra_css %}
+<style>
+  .user-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: .9rem; color: #fff; flex-shrink: 0;
+  }
+  .user-row:hover { background: #f8f9fa; }
+  .stat-badge { border-radius: 8px; padding: 14px 18px; text-align: center; }
+  .stat-badge .val { font-size: 1.8rem; font-weight: 700; line-height: 1; }
+  .stat-badge .lbl { font-size: .75rem; margin-top: 4px; opacity: .8; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Stats Row -->
+<div class="row mb-3">
+  <div class="col-sm-3 col-6 mb-2">
+    <div class="stat-badge bg-info text-white">
+      <div class="val">{{ total_users }}</div>
+      <div class="lbl">Total Usuarios</div>
+    </div>
+  </div>
+  <div class="col-sm-3 col-6 mb-2">
+    <div class="stat-badge bg-danger text-white">
+      <div class="val">{{ staff_count }}</div>
+      <div class="lbl">Administradores</div>
+    </div>
+  </div>
+  <div class="col-sm-3 col-6 mb-2">
+    <div class="stat-badge bg-success text-white">
+      <div class="val">{{ active_count }}</div>
+      <div class="lbl">Usuarios Activos</div>
+    </div>
+  </div>
+  <div class="col-sm-3 col-6 mb-2">
+    <div class="stat-badge bg-warning text-white">
+      <div class="val">{{ total_users|add:"-"|add:staff_count|add:0 }}</div>
+      <div class="lbl">Estudiantes</div>
+    </div>
+  </div>
+</div>
+
+<!-- User Table -->
+<div class="card card-primary card-outline">
+  <div class="card-header">
+    <h3 class="card-title"><i class="fas fa-users mr-1"></i> Lista de Usuarios</h3>
+    <div class="card-tools">
+      <input type="search" class="form-control form-control-sm" id="searchUser"
+             placeholder="Buscar usuario..." style="width:200px">
+    </div>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0" id="usersTable">
+        <thead class="thead-dark">
+          <tr>
+            <th width="40">#</th>
+            <th>Usuario</th>
+            <th>Correo</th>
+            <th>Rol</th>
+            <th>Cuadernos</th>
+            <th>Sesiones</th>
+            <th>Estado</th>
+            <th>Registro</th>
+            <th width="160">Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="userRows">
+          {% for u in users %}
+          <tr class="user-row" data-username="{{ u.username|lower }}">
+            <td class="text-muted">{{ forloop.counter }}</td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="user-avatar" style="background:{% cycle '#3c8dbc' '#00a65a' '#f39c12' '#dd4b39' '#605ca8' '#39cccc' %};">
+                  {{ u.username|make_list|first|upper }}
+                </div>
+                <div>
+                  <div class="font-weight-bold">{{ u.username }}</div>
+                  {% if u.get_full_name %}<small class="text-muted">{{ u.get_full_name }}</small>{% endif %}
+                </div>
+              </div>
+            </td>
+            <td><small>{{ u.email|default:"—" }}</small></td>
+            <td>
+              {% if u.is_superuser %}
+                <span class="badge badge-purple" style="background:#605ca8;color:#fff">Superusuario</span>
+              {% elif u.is_staff %}
+                <span class="badge badge-danger">Admin</span>
+              {% else %}
+                <span class="badge badge-info">Estudiante</span>
+              {% endif %}
+            </td>
+            <td><span class="badge badge-secondary">{{ u.subject_count }}</span></td>
+            <td><span class="badge badge-success">{{ u.session_count }}</span></td>
+            <td>
+              {% if u.is_active %}
+                <span class="badge badge-success"><i class="fas fa-check mr-1"></i>Activo</span>
+              {% else %}
+                <span class="badge badge-danger"><i class="fas fa-times mr-1"></i>Inactivo</span>
+              {% endif %}
+            </td>
+            <td><small class="text-muted">{{ u.date_joined|date:"d/m/Y" }}</small></td>
+            <td>
+              {% if u != request.user %}
+              <div class="btn-group btn-group-sm">
+                <!-- Toggle Active -->
+                <form action="{% url 'study:toggle_user_status' u.id %}" method="post" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="toggle_active">
+                  <button type="submit" class="btn btn-{% if u.is_active %}warning{% else %}success{% endif %} btn-xs"
+                          title="{% if u.is_active %}Desactivar{% else %}Activar{% endif %}">
+                    <i class="fas fa-{% if u.is_active %}ban{% else %}check{% endif %}"></i>
+                  </button>
+                </form>
+
+                <!-- Toggle Staff -->
+                <form action="{% url 'study:toggle_user_status' u.id %}" method="post" class="d-inline">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="toggle_staff">
+                  <button type="submit" class="btn btn-info btn-xs"
+                          title="{% if u.is_staff %}Quitar admin{% else %}Hacer admin{% endif %}">
+                    <i class="fas fa-{% if u.is_staff %}user-minus{% else %}user-shield{% endif %}"></i>
+                  </button>
+                </form>
+
+                <!-- Reset Password -->
+                <button type="button" class="btn btn-secondary btn-xs"
+                        data-toggle="modal" data-target="#resetPwdModal{{ u.id }}" title="Cambiar contraseña">
+                  <i class="fas fa-key"></i>
+                </button>
+
+                <!-- Delete -->
+                <button type="button" class="btn btn-danger btn-xs"
+                        data-toggle="modal" data-target="#deleteUserModal{{ u.id }}" title="Eliminar">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+              {% else %}
+              <span class="text-muted" style="font-size:.8rem"><i class="fas fa-user-circle mr-1"></i>Tú</span>
+              {% endif %}
+            </td>
+          </tr>
+
+          <!-- Reset Password Modal -->
+          {% if u != request.user %}
+          <div class="modal fade" id="resetPwdModal{{ u.id }}" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-sm">
+              <div class="modal-content">
+                <form action="{% url 'study:reset_user_password' u.id %}" method="post">
+                  {% csrf_token %}
+                  <div class="modal-header bg-secondary text-white">
+                    <h6 class="modal-title"><i class="fas fa-key mr-1"></i> Cambiar contraseña de {{ u.username }}</h6>
+                    <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+                  </div>
+                  <div class="modal-body">
+                    <div class="form-group mb-0">
+                      <label>Nueva contraseña</label>
+                      <input type="password" class="form-control" name="new_password" minlength="6" required placeholder="Min. 6 caracteres">
+                    </div>
+                  </div>
+                  <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary btn-sm">Guardar</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <!-- Delete User Modal -->
+          <div class="modal fade" id="deleteUserModal{{ u.id }}" tabindex="-1" role="dialog" aria-hidden="true">
+            <div class="modal-dialog modal-sm">
+              <div class="modal-content">
+                <form action="{% url 'study:toggle_user_status' u.id %}" method="post">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="delete">
+                  <div class="modal-header bg-danger text-white">
+                    <h6 class="modal-title"><i class="fas fa-trash mr-1"></i> Eliminar usuario</h6>
+                    <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
+                  </div>
+                  <div class="modal-body">
+                    <p>¿Seguro que deseas eliminar a <strong>{{ u.username }}</strong>?</p>
+                    <p class="text-danger mb-0"><small><i class="fas fa-exclamation-triangle mr-1"></i>Esta acción es irreversible y eliminará todos sus datos.</small></p>
+                  </div>
+                  <div class="modal-footer py-2">
+                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger btn-sm">Eliminar</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          {% empty %}
+          <tr><td colspan="9" class="text-center py-4 text-muted">No hay usuarios.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(function() {
+  $('#searchUser').on('input', function() {
+    var q = $(this).val().toLowerCase();
+    $('#userRows tr.user-row').each(function() {
+      var name = $(this).data('username') || '';
+      $(this).toggle(name.indexOf(q) !== -1);
+    });
+  });
+});
+</script>
+{% endblock %}

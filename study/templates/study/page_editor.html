@@ -1,0 +1,321 @@
+{% extends "base.html" %}
+
+{% block title %}{% if action == 'create' %}Nueva Página{% else %}Editar: {{ page.title }}{% endif %} — Study Admin{% endblock %}
+{% block nav_pages %}active{% endblock %}
+{% block page_title %}{% if action == 'create' %}Nueva Página{% else %}Editar Página{% endif %}{% endblock %}
+
+{% block extra_css %}
+<!-- CodeMirror -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.css">
+<style>
+  .CodeMirror { height: 400px; font-size: 13px; border-radius: 0 0 6px 6px; }
+  .editor-toolbar {
+    background: #282a36; border-radius: 6px 6px 0 0;
+    padding: 6px 12px; display: flex; align-items: center; gap: 6px;
+  }
+  .editor-toolbar .btn { font-size: .75rem; padding: 3px 8px; }
+  .editor-toolbar .lang-badge { color: #aaa; font-size: .78rem; margin-left: auto; }
+  .preview-frame {
+    border: 1px solid #dee2e6; border-radius: 6px; min-height: 300px;
+    padding: 20px; background: #fff; overflow-y: auto;
+  }
+  .tab-content { border: 1px solid #dee2e6; border-top: none; border-radius: 0 0 6px 6px; padding: 20px; }
+  .nav-tabs .nav-link.active { font-weight: 600; }
+  .field-card { border-radius: 8px; }
+  .summernote-container .note-editor { border-radius: 0 0 6px 6px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="row">
+  <div class="col-lg-8">
+
+    <form method="post" id="pageForm">
+      {% csrf_token %}
+
+      <!-- Tabs: Code | Rich Text | Preview -->
+      <ul class="nav nav-tabs" id="editorTabs">
+        <li class="nav-item">
+          <a class="nav-link active" id="tab-code" data-toggle="tab" href="#panel-code">
+            <i class="fas fa-code mr-1"></i> Editor de Código
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" id="tab-rich" data-toggle="tab" href="#panel-rich">
+            <i class="fas fa-font mr-1"></i> Editor de Texto
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" id="tab-preview" data-toggle="tab" href="#panel-preview">
+            <i class="fas fa-eye mr-1"></i> Vista Previa
+          </a>
+        </li>
+      </ul>
+
+      <div class="tab-content" id="editorTabContent">
+
+        <!-- CODE EDITOR -->
+        <div class="tab-pane fade show active" id="panel-code">
+          <div class="editor-toolbar">
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="insertTag('h1')">H1</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="insertTag('h2')">H2</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="insertTag('p')">P</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="insertTag('strong')"><b>B</b></button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="insertTag('em')"><i>I</i></button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="insertTag('a')">Link</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="insertTag('ul')">List</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="insertSnippet('card')">Card</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="insertSnippet('alert')">Alert</button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="insertSnippet('table')">Table</button>
+            <span class="lang-badge"><i class="fas fa-code mr-1"></i>HTML · AdminLTE</span>
+          </div>
+          <textarea id="codeEditor" name="content">{{ page.content|default:"" }}</textarea>
+        </div>
+
+        <!-- RICH TEXT EDITOR -->
+        <div class="tab-pane fade" id="panel-rich">
+          <div class="pt-2">
+            <div id="richEditor">{{ page.content|safe }}</div>
+          </div>
+        </div>
+
+        <!-- PREVIEW -->
+        <div class="tab-pane fade" id="panel-preview">
+          <div class="preview-frame" id="previewFrame">
+            <p class="text-muted text-center"><i class="fas fa-eye mr-1"></i> La vista previa aparecerá aquí</p>
+          </div>
+        </div>
+
+      </div><!-- /.tab-content -->
+
+      <!-- Hidden content field synced from editors -->
+      <input type="hidden" name="content" id="finalContent" value="{{ page.content|default:'' }}">
+
+    </form>
+  </div>
+
+  <!-- Settings Panel -->
+  <div class="col-lg-4">
+    <form method="post" id="settingsForm">
+      {% csrf_token %}
+      <input type="hidden" name="content" id="settingsContent" value="{{ page.content|default:'' }}">
+
+      <div class="card field-card">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0"><i class="fas fa-cog mr-1"></i> Configuración de Página</h5>
+        </div>
+        <div class="card-body">
+
+          <div class="form-group">
+            <label class="font-weight-bold">Título <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" name="title" id="pageTitle"
+                   value="{{ page.title|default:'' }}" required placeholder="Ej. Acerca de Nosotros">
+          </div>
+
+          <div class="form-group">
+            <label class="font-weight-bold">Tipo de Página</label>
+            <select class="form-control" name="page_type">
+              <option value="custom" {% if page.page_type == 'custom' or not page %}selected{% endif %}>Página Personalizada</option>
+              <option value="view" {% if page.page_type == 'view' %}selected{% endif %}>Vista basada en plantilla</option>
+              <option value="class" {% if page.page_type == 'class' %}selected{% endif %}>Vista basada en clase (CBV)</option>
+            </select>
+            <small class="text-muted">Las páginas CBV/View son para referencia de arquitectura.</small>
+          </div>
+
+          <div class="form-group">
+            <label class="font-weight-bold">Meta Descripción</label>
+            <textarea class="form-control" name="meta_description" rows="2"
+                      placeholder="Para SEO — breve descripción de la página">{{ page.meta_description|default:'' }}</textarea>
+          </div>
+
+          <div class="form-group mb-1">
+            <div class="custom-control custom-switch">
+              <input type="checkbox" class="custom-control-input" id="isPublished"
+                     name="is_published" {% if page.is_published %}checked{% endif %}>
+              <label class="custom-control-label" for="isPublished">
+                Publicada (visible para usuarios)
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group mb-0">
+            <div class="custom-control custom-switch">
+              <input type="checkbox" class="custom-control-input" id="showInNav"
+                     name="show_in_nav" {% if not page or page.show_in_nav %}checked{% endif %}>
+              <label class="custom-control-label" for="showInNav">
+                Mostrar en menú lateral
+              </label>
+            </div>
+          </div>
+
+        </div>
+        <div class="card-footer">
+          <button type="submit" class="btn btn-primary btn-block" id="saveBtn" onclick="syncAndSave()">
+            <i class="fas fa-save mr-1"></i>
+            {% if action == 'create' %}Crear Página{% else %}Guardar Cambios{% endif %}
+          </button>
+          <a href="{% url 'study:manage_pages' %}" class="btn btn-secondary btn-block btn-sm mt-1">
+            <i class="fas fa-arrow-left mr-1"></i> Cancelar
+          </a>
+        </div>
+      </div>
+
+      <!-- Snippet Helper -->
+      <div class="card mt-3">
+        <div class="card-header">
+          <h6 class="mb-0"><i class="fas fa-magic mr-1"></i> Componentes AdminLTE</h6>
+        </div>
+        <div class="card-body p-2">
+          <div class="row text-center">
+            {% for snippet in "callout,info-box,card,alert,timeline,progress"|split:"," %}
+            {% endfor %}
+            <div class="col-6 mb-2">
+              <button type="button" class="btn btn-outline-info btn-block btn-sm" onclick="insertSnippet('callout')">Callout</button>
+            </div>
+            <div class="col-6 mb-2">
+              <button type="button" class="btn btn-outline-success btn-block btn-sm" onclick="insertSnippet('info-box')">Info Box</button>
+            </div>
+            <div class="col-6 mb-2">
+              <button type="button" class="btn btn-outline-warning btn-block btn-sm" onclick="insertSnippet('progress')">Progress</button>
+            </div>
+            <div class="col-6 mb-2">
+              <button type="button" class="btn btn-outline-danger btn-block btn-sm" onclick="insertSnippet('timeline')">Timeline</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- CodeMirror -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/htmlmixed/htmlmixed.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closetag.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchtags.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/fold/xml-fold.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/show-hint.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/hint/html-hint.min.js"></script>
+
+<script>
+// ── CodeMirror init ──
+var cm = CodeMirror.fromTextArea(document.getElementById('codeEditor'), {
+  mode: 'htmlmixed',
+  theme: 'dracula',
+  lineNumbers: true,
+  lineWrapping: true,
+  autoCloseTags: true,
+  matchTags: {bothTags: true},
+  extraKeys: {
+    'Ctrl-Space': 'autocomplete',
+    'Ctrl-/': function(c) {
+      var sel = c.getSelection();
+      c.replaceSelection('<!-- ' + (sel || '') + ' -->');
+    }
+  }
+});
+
+// ── Snippets ──
+var snippets = {
+  'card': '<div class="card">\n  <div class="card-header">\n    <h3 class="card-title">Título</h3>\n  </div>\n  <div class="card-body">\n    <p>Contenido aquí...</p>\n  </div>\n</div>',
+  'alert': '<div class="alert alert-info alert-dismissible">\n  <button type="button" class="close" data-dismiss="alert">&times;</button>\n  <i class="icon fas fa-info"></i> Mensaje de alerta\n</div>',
+  'table': '<div class="table-responsive">\n  <table class="table table-hover">\n    <thead>\n      <tr><th>Columna 1</th><th>Columna 2</th></tr>\n    </thead>\n    <tbody>\n      <tr><td>Dato 1</td><td>Dato 2</td></tr>\n    </tbody>\n  </table>\n</div>',
+  'callout': '<div class="callout callout-info">\n  <h5>Información</h5>\n  <p>Texto del callout aquí.</p>\n</div>',
+  'info-box': '<div class="info-box">\n  <span class="info-box-icon bg-info"><i class="fas fa-info"></i></span>\n  <div class="info-box-content">\n    <span class="info-box-text">Etiqueta</span>\n    <span class="info-box-number">Valor</span>\n  </div>\n</div>',
+  'progress': '<div class="progress">\n  <div class="progress-bar bg-success" style="width: 70%">70%</div>\n</div>',
+  'timeline': '<div class="timeline">\n  <div class="time-label"><span class="bg-primary">Hoy</span></div>\n  <div>\n    <i class="fas fa-circle bg-blue"></i>\n    <div class="timeline-item">\n      <span class="time"><i class="fas fa-clock"></i> 12:00</span>\n      <h3 class="timeline-header">Evento</h3>\n      <div class="timeline-body">Descripción del evento.</div>\n    </div>\n  </div>\n</div>',
+};
+
+var tags = {
+  'h1': ['<h1>', '</h1>'],
+  'h2': ['<h2>', '</h2>'],
+  'p':  ['<p>', '</p>'],
+  'strong': ['<strong>', '</strong>'],
+  'em': ['<em>', '</em>'],
+  'a':  ['<a href="#">', '</a>'],
+  'ul': ['<ul>\n  <li>', '</li>\n</ul>'],
+};
+
+function insertTag(tag) {
+  var t = tags[tag];
+  if (!t) return;
+  var doc = cm.getDoc();
+  var sel = doc.getSelection();
+  doc.replaceSelection(t[0] + (sel || 'texto') + t[1]);
+}
+
+function insertSnippet(name) {
+  var snip = snippets[name];
+  if (!snip) return;
+  var doc = cm.getDoc();
+  var cursor = doc.getCursor();
+  doc.replaceRange('\n' + snip + '\n', cursor);
+}
+
+// ── Summernote (rich text) ──
+$(function() {
+  $('#richEditor').summernote({
+    height: 380,
+    toolbar: [
+      ['style', ['style']],
+      ['font', ['bold', 'italic', 'underline', 'clear']],
+      ['color', ['color']],
+      ['para', ['ul', 'ol', 'paragraph']],
+      ['table', ['table']],
+      ['insert', ['link', 'picture', 'hr']],
+      ['view', ['fullscreen', 'codeview', 'help']],
+    ],
+    callbacks: {
+      onChange: function(content) {
+        // sync to CM only if rich tab is active
+      }
+    }
+  });
+
+  // ── Tab switching ──
+  $('a[data-toggle="tab"]').on('shown.bs.tab', function(e) {
+    var target = $(e.target).attr('href');
+    var cmContent = cm.getValue();
+
+    if (target === '#panel-rich') {
+      $('#richEditor').summernote('code', cmContent);
+    } else if (target === '#panel-code') {
+      var richContent = $('#richEditor').summernote('code');
+      cm.setValue(richContent);
+    } else if (target === '#panel-preview') {
+      var richContent = $('#richEditor').summernote('code');
+      var cmContent2 = cm.getValue();
+      var content = (document.getElementById('panel-rich').classList.contains('active'))
+        ? richContent : cmContent2;
+      $('#previewFrame').html(content || '<p class="text-muted text-center">Sin contenido</p>');
+    }
+    cm.refresh();
+  });
+
+  // ── Sync and save ──
+  window.syncAndSave = function() {
+    var cmContent = cm.getValue();
+    var richContent = $('#richEditor').summernote('code');
+    var activeTab = $('#editorTabs .nav-link.active').attr('href');
+    var finalContent = (activeTab === '#panel-rich') ? richContent : cmContent;
+    $('#settingsContent').val(finalContent);
+    document.getElementById('settingsForm').submit();
+  };
+
+  // Update title in real-time
+  $('#pageTitle').on('input', function() {
+    document.title = ($(this).val() || 'Nueva Página') + ' — Study Admin';
+  });
+});
+</script>
+{% endblock %}
