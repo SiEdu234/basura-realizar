@@ -1,19 +1,30 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, HttpResponseServerError
 import json
-from .models import Subject, File
+from .models import Subject, File, UserProfile
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
 from django.contrib import messages
+from django.db.models import Q
+
+def landing_page(request):
+    if request.user.is_authenticated:
+        if request.user.is_staff:
+            return redirect('admin_dashboard')
+        else:
+            return redirect('study:dashboard')
+    return render(request, 'landing.html')
 
 def register_user(request):
     if request.method == 'POST':
         form = UserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
+            # Ensure UserProfile exists
+            UserProfile.objects.get_or_create(user=user)
             login(request, user)
             messages.success(request, '¡Registro exitoso! Bienvenido al sistema.')
             return redirect('study:dashboard')
@@ -22,20 +33,35 @@ def register_user(request):
     return render(request, 'registration/register.html', {'form': form})
 
 @login_required
+def profile_view(request):
+    # Ensure user has a profile
+    profile, created = UserProfile.objects.get_or_create(user=request.user)
+    
+    if request.method == 'POST':
+        if 'avatar' in request.FILES:
+            profile.avatar = request.FILES['avatar']
+            profile.save()
+            messages.success(request, '¡Foto de perfil actualizada exitosamente!')
+            return redirect('study:profile_view')
+            
+    return render(request, 'study/profile.html', {'profile': profile})
+
+@login_required
 def admin_dashboard(request):
     if not request.user.is_staff:
         return redirect('study:dashboard')
 
-    total_subjects = Subject.objects.count()
+    total_subjects = Subject.objects.filter(owner__isnull=True).count()
+    student_subjects = Subject.objects.filter(owner__isnull=False).count()
     total_files = File.objects.count()
     total_users = User.objects.count()
     
     total_questions = 0
-    # Collect data for charts
     subjects_data = []
     files_count_data = []
     
-    for subject in Subject.objects.all():
+    # We'll plot public subjects
+    for subject in Subject.objects.filter(owner__isnull=True):
         subjects_data.append(subject.name)
         files_count_data.append(subject.files.count())
         
@@ -47,6 +73,7 @@ def admin_dashboard(request):
             
     context = {
         'total_subjects': total_subjects,
+        'student_subjects': student_subjects,
         'total_files': total_files,
         'total_users': total_users,
         'total_questions': total_questions,
@@ -57,27 +84,40 @@ def admin_dashboard(request):
 
 @login_required
 def dashboard(request):
-    subjects = Subject.objects.all().order_by('-created_at')
+    # Ensure profile exists
+    UserProfile.objects.get_or_create(user=request.user)
+    
+    if request.user.is_staff:
+        # Admins see all subjects
+        subjects = Subject.objects.all().order_by('-created_at')
+    else:
+        # Students see global subjects (owner=None) OR their own private subjects
+        subjects = Subject.objects.filter(Q(owner__isnull=True) | Q(owner=request.user)).order_by('-created_at')
+        
     return render(request, 'study/dashboard.html', {'subjects': subjects})
 
 @login_required
 def create_subject(request):
-    if not request.user.is_staff:
-        return redirect('study:dashboard')
-
     if request.method == 'POST':
         name = request.POST.get('name')
         if name:
-            Subject.objects.create(name=name)
-            messages.success(request, 'Materia creada exitosamente.')
+            if request.user.is_staff:
+                # Global subject
+                Subject.objects.create(name=name, owner=None)
+            else:
+                # Private notebook
+                Subject.objects.create(name=name, owner=request.user)
+            messages.success(request, 'Cuaderno creado exitosamente.')
     return redirect('study:dashboard')
 
 @login_required
 def edit_subject(request, subject_id):
-    if not request.user.is_staff:
+    subject = get_object_or_404(Subject, id=subject_id)
+    
+    # Check permissions
+    if not request.user.is_staff and subject.owner != request.user:
         return redirect('study:dashboard')
         
-    subject = get_object_or_404(Subject, id=subject_id)
     if request.method == 'POST':
         name = request.POST.get('name')
         if name:
@@ -88,10 +128,12 @@ def edit_subject(request, subject_id):
 
 @login_required
 def delete_subject(request, subject_id):
-    if not request.user.is_staff:
+    subject = get_object_or_404(Subject, id=subject_id)
+    
+    # Admins can delete anything, students can only delete their own
+    if not request.user.is_staff and subject.owner != request.user:
         return redirect('study:dashboard')
         
-    subject = get_object_or_404(Subject, id=subject_id)
     if request.method == 'POST':
         subject.delete()
         messages.success(request, 'Materia eliminada.')
@@ -101,6 +143,12 @@ def delete_subject(request, subject_id):
 def subject_detail(request, subject_id):
     try:
         subject = get_object_or_404(Subject, id=subject_id)
+        
+        # Security check: if student, can only view global or own
+        if not request.user.is_staff:
+            if subject.owner is not None and subject.owner != request.user:
+                return redirect('study:dashboard')
+                
         files = subject.files.all().order_by('-created_at')
         return render(request, 'study/subject_detail.html', {'subject': subject, 'files': files})
     except Exception as e:
@@ -109,10 +157,12 @@ def subject_detail(request, subject_id):
 @csrf_exempt
 @login_required
 def upload_file(request, subject_id):
-    if not request.user.is_staff:
-        return JsonResponse({'success': False, 'error': 'No tienes permisos de administrador'})
-        
     subject = get_object_or_404(Subject, id=subject_id)
+    
+    # Students can only upload to their own subjects
+    if not request.user.is_staff and subject.owner != request.user:
+        return JsonResponse({'success': False, 'error': 'No tienes permisos para este cuaderno'})
+        
     if request.method == 'POST':
         if 'file' in request.FILES:
             uploaded_file = request.FILES['file']
@@ -127,11 +177,12 @@ def upload_file(request, subject_id):
 
 @login_required
 def delete_file(request, file_id):
-    if not request.user.is_staff:
-        return redirect('study:dashboard')
-        
     file_obj = get_object_or_404(File, id=file_id)
     subject_id = file_obj.subject.id
+    
+    if not request.user.is_staff and file_obj.subject.owner != request.user:
+        return redirect('study:subject_detail', subject_id=subject_id)
+        
     if request.method == 'POST':
         file_obj.delete()
         messages.success(request, 'Archivo eliminado.')
@@ -141,7 +192,11 @@ def delete_file(request, file_id):
 def quiz_runner(request, subject_id):
     try:
         subject = get_object_or_404(Subject, id=subject_id)
-        # Passed via query parameters ?files=id1,id2
+        
+        if not request.user.is_staff:
+            if subject.owner is not None and subject.owner != request.user:
+                return redirect('study:dashboard')
+                
         file_ids = request.GET.get('files', '')
         mode = request.GET.get('mode', 'test')
         count = request.GET.get('count', 'all')

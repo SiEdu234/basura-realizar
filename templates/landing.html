@@ -1,0 +1,78 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Study Admin | Bienvenido</title>
+
+  <!-- Google Font: Source Sans Pro -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="{% static 'plugins/fontawesome-free/css/all.min.css' %}">
+  <!-- Theme style -->
+  <link rel="stylesheet" href="{% static 'dist/css/adminlte.min.css' %}">
+  <style>
+    .landing-page {
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+      color: white;
+    }
+    .landing-box {
+      text-align: center;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 3rem;
+      border-radius: 15px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    .landing-box h1 {
+      font-size: 3rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+    .landing-box p {
+      font-size: 1.2rem;
+      margin-bottom: 2rem;
+    }
+    .btn-custom {
+      font-size: 1.1rem;
+      padding: 10px 30px;
+      border-radius: 30px;
+      margin: 10px;
+      transition: all 0.3s ease;
+    }
+    .btn-custom:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body class="hold-transition landing-page">
+
+<div class="landing-box">
+  <i class="fas fa-graduation-cap fa-5x mb-4"></i>
+  <h1>Study Admin</h1>
+  <p>La plataforma para potenciar tu estudio con cuestionarios inteligentes y repaso espaciado.</p>
+  
+  <div class="mt-4">
+    <a href="{% url 'login' %}" class="btn btn-light btn-custom text-primary">
+      <i class="fas fa-sign-in-alt mr-2"></i> Iniciar Sesión
+    </a>
+    <a href="{% url 'register' %}" class="btn btn-outline-light btn-custom">
+      <i class="fas fa-user-plus mr-2"></i> Registrarse
+    </a>
+  </div>
+</div>
+
+<!-- jQuery -->
+<script src="{% static 'plugins/jquery/jquery.min.js' %}"></script>
+<!-- Bootstrap 4 -->
+<script src="{% static 'plugins/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+<!-- AdminLTE App -->
+<script src="{% static 'dist/js/adminlte.min.js' %}"></script>
+</body>
+</html>

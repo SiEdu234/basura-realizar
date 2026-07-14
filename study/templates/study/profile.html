@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Study Admin | Perfil{% endblock %}
+{% block page_title %}Mi Perfil{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-6 offset-md-3">
+    <div class="card card-primary card-outline">
+      <div class="card-body box-profile">
+        <div class="text-center">
+          {% if profile.avatar %}
+            <img class="profile-user-img img-fluid img-circle"
+                 src="{{ profile.avatar.url }}"
+                 alt="User profile picture" style="width: 150px; height: 150px; object-fit: cover;">
+          {% else %}
+            <div class="profile-user-img img-fluid img-circle d-flex align-items-center justify-content-center bg-secondary"
+                 style="width: 150px; height: 150px; font-size: 60px;">
+              {{ user.username|make_list|first|upper }}
+            </div>
+          {% endif %}
+        </div>
+
+        <h3 class="profile-username text-center">{{ user.username }}</h3>
+
+        <p class="text-muted text-center">{% if user.is_staff %}Administrador{% else %}Estudiante{% endif %}</p>
+
+        <form action="{% url 'study:profile_view' %}" method="post" enctype="multipart/form-data" class="mt-4">
+          {% csrf_token %}
+          <div class="form-group">
+            <label for="avatar">Cambiar Foto de Perfil</label>
+            <div class="input-group">
+              <div class="custom-file">
+                <input type="file" class="custom-file-input" id="avatar" name="avatar" accept="image/*" required>
+                <label class="custom-file-label" for="avatar">Elegir archivo</label>
+              </div>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block"><b>Actualizar Perfil</b></button>
+        </form>
+      </div>
+      <!-- /.card-body -->
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(function () {
+    $('.custom-file-input').on('change',function(){
+      var fileName = $(this).val().split('\\').pop();
+      $(this).next('.custom-file-label').addClass("selected").html(fileName);
+    })
+  });
+</script>
+{% endblock %}
