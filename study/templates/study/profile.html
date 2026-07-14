@@ -84,80 +84,63 @@
 {% block extra_js %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 <script>
-  $(function () {
-    console.log("CROPPER V7 LOADED - Final Image Decode Fix");
-    var $modal = $('#cropperModal');
-    var image = document.getElementById('imageToCrop');
-    var cropper = null;
-    var $input = $('#avatarInput');
-    var currentUrl = null;
+$(function () {
+  var $modal = $('#cropperModal');
+  var image = document.getElementById('imageToCrop');
+  var cropper = null;
+  var $input = $('#avatarInput');
+  var selectedFile = null;
 
-    $input.on('change', function(e) {
-      var files = e.target.files;
-      if (files && files.length > 0) {
-        var file = files[0];
-        $(this).next('.custom-file-label').addClass("selected").html(file.name);
-        
-        // onload DEBE asignarse ANTES de asignar src, si no la imagen puede cargar antes
-        // y el evento se pierde (especialmente en imagenes en cache del navegador)
-        image.onload = function() {
-            $modal.modal('show');
-        };
-        image.onerror = function() {
-            alert('No se pudo cargar la imagen.');
-        };
-        
-        currentUrl = URL.createObjectURL(file);
-        image.src = currentUrl;
-        $input.val('');
-      }
-    });
-
-    $modal.on('shown.bs.modal', function () {
-      setTimeout(function() {
-        if (cropper) { cropper.destroy(); }
-        cropper = new Cropper(image, {
-          aspectRatio: 1,
-          viewMode: 1,
-          autoCropArea: 0.8,
-          dragMode: 'move',
-          responsive: true,
-          restore: true,
-          center: true,
-        });
-      }, 150);
-    }).on('hidden.bs.modal', function () {
-      if (cropper) {
-        cropper.destroy();
-        cropper = null;
-      }
-      image.onload = null;
-      image.onerror = null;
-      image.removeAttribute('src');
-      // Solo liberamos la memoria CUANDO se cierra el modal
-      if (currentUrl) {
-          URL.revokeObjectURL(currentUrl);
-          currentUrl = null;
-      }
-    });
-
-    $('#cropAndSaveBtn').on('click', function() {
-      if (!cropper) return;
-      var canvas = cropper.getCroppedCanvas({
-        width: 400,
-        height: 400,
-        imageSmoothingEnabled: true,
-        imageSmoothingQuality: 'high',
-        fillColor: '#fff' 
-      });
-      if (canvas) {
-        var base64data = canvas.toDataURL('image/jpeg', 0.8);
-        $('#avatar_base64').val(base64data);
-        $input.removeAttr('required');
-        $modal.modal('hide');
-        $('#avatarForm').submit();
-      }
-    });
+  // Paso 1: el usuario elige un archivo
+  $input.on('change', function(e) {
+    if (!e.target.files || !e.target.files.length) return;
+    selectedFile = e.target.files[0];
+    $(this).next('.custom-file-label').html(selectedFile.name);
+    $input.val('');
+    // Abrimos el modal PRIMERO. La imagen se carga dentro de shown.bs.modal
+    $modal.modal('show');
   });
+
+  // Paso 2: el modal ya esta visible y tiene dimensiones reales
+  $modal.on('shown.bs.modal', function () {
+    if (!selectedFile) return;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      image.src = e.target.result;
+      // Paso 3: la imagen ya tiene src, inicializar cropper
+      if (cropper) { cropper.destroy(); }
+      cropper = new Cropper(image, {
+        aspectRatio: 1,
+        viewMode: 1,
+        autoCropArea: 0.8,
+        dragMode: 'move',
+        responsive: true,
+      });
+    };
+    reader.readAsDataURL(selectedFile);
+  });
+
+  // Al cerrar el modal, limpiar todo
+  $modal.on('hidden.bs.modal', function () {
+    if (cropper) { cropper.destroy(); cropper = null; }
+    image.removeAttribute('src');
+    selectedFile = null;
+  });
+
+  // Guardar el recorte
+  $('#cropAndSaveBtn').on('click', function() {
+    if (!cropper) return;
+    var canvas = cropper.getCroppedCanvas({
+      width: 400,
+      height: 400,
+      fillColor: '#fff',
+    });
+    if (!canvas) return;
+    $('#avatar_base64').val(canvas.toDataURL('image/jpeg', 0.85));
+    $input.removeAttr('required');
+    $modal.modal('hide');
+    $('#avatarForm').submit();
+  });
+});
 </script>
 {% endblock %}
