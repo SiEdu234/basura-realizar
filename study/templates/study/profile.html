@@ -69,7 +69,7 @@
       </div>
       <div class="modal-body p-0">
         <div style="width: 100%; height: 400px; background-color: #000; position: relative; overflow: hidden;">
-          <img id="imageToCrop" src="" style="display: block; max-width: 100%; margin: 0 auto;">
+          <img id="imageToCrop" style="display: block; max-width: 100%; margin: 0 auto;">
         </div>
       </div>
       <div class="modal-footer">
@@ -98,16 +98,18 @@
         var file = files[0];
         $(this).next('.custom-file-label').addClass("selected").html(file.name);
         
-        // createObjectURL es 100x más rápido y no congela el navegador con base64 gigantes
-        currentUrl = URL.createObjectURL(file);
-        
-        // CRUCIAL: Esperamos a que la imagen esté 100% renderizada en el DOM antes de abrir el modal
+        // onload DEBE asignarse ANTES de asignar src, si no la imagen puede cargar antes
+        // y el evento se pierde (especialmente en imagenes en cache del navegador)
         image.onload = function() {
             $modal.modal('show');
         };
+        image.onerror = function() {
+            alert('No se pudo cargar la imagen.');
+        };
         
+        currentUrl = URL.createObjectURL(file);
         image.src = currentUrl;
-        $input.val(''); // Limpiar el input
+        $input.val('');
       }
     });
 
@@ -129,6 +131,8 @@
         cropper.destroy();
         cropper = null;
       }
+      image.onload = null;
+      image.onerror = null;
       image.removeAttribute('src');
       // Solo liberamos la memoria CUANDO se cierra el modal
       if (currentUrl) {
