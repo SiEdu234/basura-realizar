@@ -21,7 +21,7 @@
       <div class="card-header">
         <h3 class="card-title"><i class="fas fa-database"></i> Archivos de preguntas</h3>
         <div class="card-tools">
-          {% if user.is_staff %}
+          {% if user.is_authenticated and user.is_staff or user.is_authenticated and subject.owner == user %}
           <label class="btn btn-primary btn-sm mb-0">
             <i class="fas fa-upload"></i> Subir JSON/XML
             <input type="file" id="fileUpload" accept=".json,.xml" multiple hidden data-url="{% url 'study:upload_file' subject.id %}">
@@ -36,7 +36,7 @@
               <th style="width: 40px">Sel</th>
               <th>Nombre del archivo</th>
               <th>Fecha</th>
-              {% if user.is_staff %}
+              {% if user.is_authenticated and user.is_staff or user.is_authenticated and subject.owner == user %}
               <th style="width: 60px">Acción</th>
               {% endif %}
             </tr>
@@ -52,7 +52,7 @@
               </td>
               <td>{{ file.name }}</td>
               <td>{{ file.created_at|date:"d M Y" }}</td>
-              {% if user.is_staff %}
+              {% if user.is_authenticated and user.is_staff or user.is_authenticated and subject.owner == user %}
               <td>
                 <form action="{% url 'study:delete_file' file.id %}" method="post" class="d-inline">
                   {% csrf_token %}

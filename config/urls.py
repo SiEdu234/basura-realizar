@@ -20,7 +20,7 @@ urlpatterns = [
     path('accounts/', include('django.contrib.auth.urls')),
     path('study/', include('study.urls')),
     path('admin-dashboard/', admin_dashboard, name='admin_dashboard'),
-    path('', landing_page, name='home'),
+    path('', study_views.dashboard, name='home'),
     path('<path:template_name>', render_template, name='render_template'),
 ]
 

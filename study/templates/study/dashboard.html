@@ -1,15 +1,17 @@
 {% extends "base.html" %}
 
-{% block title %}{% if user.is_staff %}Gestión de Materias{% else %}Mis Cuadernos{% endif %}{% endblock %}
+{% block title %}{% if user.is_staff %}Gestión de Materias{% elif user.is_authenticated %}Mis Cuadernos{% else %}Materias Públicas{% endif %}{% endblock %}
 {% block nav_dashboard %}active{% endblock %}
-{% block page_title %}{% if user.is_staff %}Dashboard - Materias{% else %}Mis Cuadernos Privados{% endif %}{% endblock %}
+{% block page_title %}{% if user.is_staff %}Dashboard - Materias{% elif user.is_authenticated %}Mis Cuadernos Privados{% else %}Materias de Estudio Públicas{% endif %}{% endblock %}
 
 {% block content %}
 <div class="row mb-3">
   <div class="col-12">
+    {% if user.is_authenticated %}
     <button class="btn btn-primary" data-toggle="modal" data-target="#createSubjectModal">
       <i class="fas fa-plus-circle"></i> {% if user.is_staff %}Nueva materia{% else %}Nuevo Cuaderno{% endif %}
     </button>
+    {% endif %}
   </div>
 </div>
 
@@ -99,8 +101,10 @@
     <div class="alert alert-info">
       {% if user.is_staff %}
       No hay materias creadas. Crea una para empezar.
-      {% else %}
+      {% elif user.is_authenticated %}
       No tienes cuadernos ni hay material público disponible. ¡Crea tu primer cuaderno privado!
+      {% else %}
+      No hay materias públicas disponibles por el momento.
       {% endif %}
     </div>
   </div>

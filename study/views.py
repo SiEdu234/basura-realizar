@@ -1,6 +1,8 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, HttpResponseServerError
 import json
+import base64
+from django.core.files.base import ContentFile
 from .models import Subject, File, UserProfile
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.models import User
@@ -9,14 +11,6 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login
 from django.contrib import messages
 from django.db.models import Q
-
-def landing_page(request):
-    if request.user.is_authenticated:
-        if request.user.is_staff:
-            return redirect('admin_dashboard')
-        else:
-            return redirect('study:dashboard')
-    return render(request, 'landing.html')
 
 def register_user(request):
     if request.method == 'POST':
@@ -38,8 +32,12 @@ def profile_view(request):
     profile, created = UserProfile.objects.get_or_create(user=request.user)
     
     if request.method == 'POST':
-        if 'avatar' in request.FILES:
-            profile.avatar = request.FILES['avatar']
+        avatar_base64 = request.POST.get('avatar_base64')
+        if avatar_base64:
+            format, imgstr = avatar_base64.split(';base64,')
+            ext = format.split('/')[-1]
+            data = ContentFile(base64.b64decode(imgstr), name=f'avatar_{request.user.id}.{ext}')
+            profile.avatar = data
             profile.save()
             messages.success(request, '¡Foto de perfil actualizada exitosamente!')
             return redirect('study:profile_view')
@@ -82,17 +80,16 @@ def admin_dashboard(request):
     }
     return render(request, 'home.html', context)
 
-@login_required
+
 def dashboard(request):
-    # Ensure profile exists
-    UserProfile.objects.get_or_create(user=request.user)
-    
-    if request.user.is_staff:
-        # Admins see all subjects
-        subjects = Subject.objects.all().order_by('-created_at')
+    if request.user.is_authenticated:
+        UserProfile.objects.get_or_create(user=request.user)
+        if request.user.is_staff:
+            subjects = Subject.objects.all().order_by('-created_at')
+        else:
+            subjects = Subject.objects.filter(Q(owner__isnull=True) | Q(owner=request.user)).order_by('-created_at')
     else:
-        # Students see global subjects (owner=None) OR their own private subjects
-        subjects = Subject.objects.filter(Q(owner__isnull=True) | Q(owner=request.user)).order_by('-created_at')
+        subjects = Subject.objects.filter(owner__isnull=True).order_by('-created_at')
         
     return render(request, 'study/dashboard.html', {'subjects': subjects})
 
@@ -139,14 +136,18 @@ def delete_subject(request, subject_id):
         messages.success(request, 'Materia eliminada.')
     return redirect('study:dashboard')
 
-@login_required
+
 def subject_detail(request, subject_id):
     try:
         subject = get_object_or_404(Subject, id=subject_id)
         
-        # Security check: if student, can only view global or own
-        if not request.user.is_staff:
-            if subject.owner is not None and subject.owner != request.user:
+        # Security check
+        if request.user.is_authenticated:
+            if not request.user.is_staff:
+                if subject.owner is not None and subject.owner != request.user:
+                    return redirect('study:dashboard')
+        else:
+            if subject.owner is not None:
                 return redirect('study:dashboard')
                 
         files = subject.files.all().order_by('-created_at')
@@ -188,13 +189,18 @@ def delete_file(request, file_id):
         messages.success(request, 'Archivo eliminado.')
     return redirect('study:subject_detail', subject_id=subject_id)
 
-@login_required
+
 def quiz_runner(request, subject_id):
     try:
         subject = get_object_or_404(Subject, id=subject_id)
         
-        if not request.user.is_staff:
-            if subject.owner is not None and subject.owner != request.user:
+        # Security check
+        if request.user.is_authenticated:
+            if not request.user.is_staff:
+                if subject.owner is not None and subject.owner != request.user:
+                    return redirect('study:dashboard')
+        else:
+            if subject.owner is not None:
                 return redirect('study:dashboard')
                 
         file_ids = request.GET.get('files', '')
