@@ -6,6 +6,18 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
+<style>
+  /* Para hacer que la guía de recorte sea REDONDA tipo Facebook/Google */
+  .cropper-view-box,
+  .cropper-face {
+    border-radius: 50%;
+  }
+  /* Ocultar el fondo negro que queda fuera del círculo */
+  .cropper-view-box {
+    outline: 0;
+    box-shadow: 0 0 0 1px #39f;
+  }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -58,7 +70,6 @@
         </button>
       </div>
       <div class="modal-body p-0">
-        <!-- Contenedor ultra estricto inline para asegurar que nada interfiere -->
         <div style="width: 100%; height: 400px; background-color: #000; position: relative; overflow: hidden;">
           <img id="imageToCrop" src="" style="display: block; max-width: 100%; margin: 0 auto;">
         </div>
@@ -76,11 +87,12 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 <script>
   $(function () {
-    console.log("CROPPER V4 LOADED"); // Para verificar que el JS se actualizó en producción
+    console.log("CROPPER V5 LOADED - Circular & Black Screen Fix");
     var $modal = $('#cropperModal');
     var image = document.getElementById('imageToCrop');
     var cropper = null;
     var $input = $('#avatarInput');
+    var currentUrl = null;
 
     $input.on('change', function(e) {
       var files = e.target.files;
@@ -88,18 +100,17 @@
         var file = files[0];
         $(this).next('.custom-file-label').addClass("selected").html(file.name);
         
-        var url = URL.createObjectURL(file);
+        currentUrl = URL.createObjectURL(file);
+        
         image.onload = function() {
-            URL.revokeObjectURL(url);
             $modal.modal('show');
         };
-        image.src = url;
-        $input.val('');
+        image.src = currentUrl;
+        $input.val(''); 
       }
     });
 
     $modal.on('shown.bs.modal', function () {
-      // El timeout es CRUCIAL en Bootstrap para que la animación termine y el canvas tenga width/height real
       setTimeout(function() {
         cropper = new Cropper(image, {
           aspectRatio: 1,
@@ -117,6 +128,10 @@
         cropper = null;
       }
       image.src = '';
+      if (currentUrl) {
+          URL.revokeObjectURL(currentUrl);
+          currentUrl = null;
+      }
     });
 
     $('#cropAndSaveBtn').on('click', function() {
@@ -126,6 +141,8 @@
         height: 400,
         imageSmoothingEnabled: true,
         imageSmoothingQuality: 'high',
+        // Evitamos fondo negro transparente rellenando con blanco
+        fillColor: '#fff' 
       });
       if (canvas) {
         var base64data = canvas.toDataURL('image/jpeg', 0.8);
