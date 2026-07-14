@@ -1,0 +1,53 @@
+{
+  "subject": "Biología Celular",
+  "description": "Tarjetas de memoria sobre conceptos básicos de la célula",
+  "author": "Estudiante01",
+  "version": "1.0",
+  "cards": [
+    {
+      "id": 1,
+      "front": "¿Qué es la mitosis?",
+      "back": "Proceso de división celular que produce dos células hijas genéticamente idénticas a la célula madre. Pasa por las fases: Profase, Metafase, Anafase y Telofase.",
+      "tags": ["célula", "división", "genética"],
+      "difficulty": "medium",
+      "hint": "Piensa en copias exactas",
+      "image_url": null
+    },
+    {
+      "id": 2,
+      "front": "¿Cuál es la función del ribosoma?",
+      "back": "Sintetizar proteínas a partir de la información contenida en el ARN mensajero. Pueden estar libres en el citoplasma o unidos al retículo endoplasmático rugoso.",
+      "tags": ["orgánulo", "proteínas", "ARN"],
+      "difficulty": "easy",
+      "hint": "Fábrica de proteínas",
+      "image_url": null
+    },
+    {
+      "id": 3,
+      "front": "ADN vs ARN — diferencias principales",
+      "back": "ADN: doble cadena, desoxirribosa, bases A/T/C/G, almacena info genética.\nARN: cadena simple, ribosa, bases A/U/C/G, transmite info del ADN al ribosoma.",
+      "tags": ["ADN", "ARN", "genética"],
+      "difficulty": "hard",
+      "hint": "Estructura y función de cada uno",
+      "image_url": null
+    },
+    {
+      "id": 4,
+      "front": "Membrana plasmática — ¿qué modelo la describe?",
+      "back": "El modelo del Mosaico Fluido (Singer y Nicolson, 1972). Bicapa de fosfolípidos con proteínas embebidas que le dan fluidez y funciones de transporte.",
+      "tags": ["membrana", "estructura"],
+      "difficulty": "easy",
+      "hint": "Singer y Nicolson",
+      "image_url": null
+    },
+    {
+      "id": 5,
+      "front": "¿Qué produce la mitocondria?",
+      "back": "ATP (adenosín trifosfato) mediante la respiración celular aeróbica. Por eso se le llama 'la central energética de la célula'.",
+      "tags": ["orgánulo", "energía", "ATP"],
+      "difficulty": "easy",
+      "hint": "Energía = ATP",
+      "image_url": null
+    }
+  ]
+}
