@@ -28,16 +28,15 @@ def register_user(request):
 
 @login_required
 def profile_view(request):
-    # Ensure user has a profile
     profile, created = UserProfile.objects.get_or_create(user=request.user)
     
     if request.method == 'POST':
-        avatar_base64 = request.POST.get('avatar_base64')
-        if avatar_base64:
-            format, imgstr = avatar_base64.split(';base64,')
-            ext = format.split('/')[-1]
-            data = ContentFile(base64.b64decode(imgstr), name=f'avatar_{request.user.id}.{ext}')
-            profile.avatar = data
+        avatar_file = request.FILES.get('avatar')
+        if avatar_file:
+            # Guardar directamente el archivo subido
+            ext = avatar_file.name.split('.')[-1].lower()
+            avatar_file.name = f'avatar_{request.user.id}.{ext}'
+            profile.avatar = avatar_file
             profile.save()
             messages.success(request, '¡Foto de perfil actualizada exitosamente!')
             return redirect('study:profile_view')
