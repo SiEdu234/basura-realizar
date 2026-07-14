@@ -7,12 +7,10 @@
 {% block extra_head %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
 <style>
-  /* Para hacer que la guía de recorte sea REDONDA tipo Facebook/Google */
   .cropper-view-box,
   .cropper-face {
     border-radius: 50%;
   }
-  /* Ocultar el fondo negro que queda fuera del círculo */
   .cropper-view-box {
     outline: 0;
     box-shadow: 0 0 0 1px #39f;
@@ -87,12 +85,11 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 <script>
   $(function () {
-    console.log("CROPPER V5 LOADED - Circular & Black Screen Fix");
+    console.log("CROPPER V6 LOADED - FileReader Fallback");
     var $modal = $('#cropperModal');
     var image = document.getElementById('imageToCrop');
     var cropper = null;
     var $input = $('#avatarInput');
-    var currentUrl = null;
 
     $input.on('change', function(e) {
       var files = e.target.files;
@@ -100,18 +97,23 @@
         var file = files[0];
         $(this).next('.custom-file-label').addClass("selected").html(file.name);
         
-        currentUrl = URL.createObjectURL(file);
-        
-        image.onload = function() {
-            $modal.modal('show');
+        // Volvemos a FileReader porque URL.createObjectURL a veces es bloqueado o falla en ciertos navegadores/formatos
+        var reader = new FileReader();
+        reader.onload = function(event) {
+          image.src = event.target.result;
+          $modal.modal('show');
+          $input.val(''); // Limpiamos después de mostrar el modal
         };
-        image.src = currentUrl;
-        $input.val(''); 
+        reader.onerror = function() {
+          alert("Error al leer la imagen. Formato no soportado.");
+        };
+        reader.readAsDataURL(file);
       }
     });
 
     $modal.on('shown.bs.modal', function () {
       setTimeout(function() {
+        if (cropper) { cropper.destroy(); }
         cropper = new Cropper(image, {
           aspectRatio: 1,
           viewMode: 1,
@@ -127,11 +129,7 @@
         cropper.destroy();
         cropper = null;
       }
-      image.src = '';
-      if (currentUrl) {
-          URL.revokeObjectURL(currentUrl);
-          currentUrl = null;
-      }
+      image.removeAttribute('src'); // No usamos src='' para evitar peticiones a la red
     });
 
     $('#cropAndSaveBtn').on('click', function() {
@@ -141,7 +139,6 @@
         height: 400,
         imageSmoothingEnabled: true,
         imageSmoothingQuality: 'high',
-        // Evitamos fondo negro transparente rellenando con blanco
         fillColor: '#fff' 
       });
       if (canvas) {
