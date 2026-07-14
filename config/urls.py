@@ -3,7 +3,7 @@ from django.urls import path, include
 from django.shortcuts import render
 from django.template.exceptions import TemplateDoesNotExist
 from django.http import Http404
-from study.views import admin_dashboard, landing_page
+from study.views import admin_dashboard
 from study import views as study_views
 from django.conf import settings
 from django.conf.urls.static import static
