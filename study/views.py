@@ -6,7 +6,7 @@ import io
 from datetime import datetime, timedelta
 from django.utils import timezone
 from django.core.files.base import ContentFile
-from .models import Subject, File, UserProfile, QuizSession, ActivityLog, CustomPage, Flashcard
+from .models import Subject, File, UserProfile, QuizSession, ActivityLog, CustomPage, Flashcard, FailedQuestion
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
