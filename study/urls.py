@@ -13,4 +13,5 @@ urlpatterns = [
     path('subject/<uuid:subject_id>/upload/', views.upload_file, name='upload_file'),
     path('file/<uuid:file_id>/delete/', views.delete_file, name='delete_file'),
     path('quiz/<uuid:subject_id>/', views.quiz_runner, name='quiz_runner'),
+    path('format-guide/', views.format_guide, name='format_guide'),
 ]

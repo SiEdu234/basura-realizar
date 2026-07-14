@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Study Admin | Guía de Formatos{% endblock %}
+{% block nav_guide %}active{% endblock %}
+{% block page_title %}Guía de Formatos (JSON/XML){% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-12">
+    <div class="card card-primary card-outline">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-info-circle"></i> Nuevo Formato de Cuestionario (JSON / XML)</h3>
+      </div>
+      <div class="card-body">
+        <p>Para aprovechar al máximo las nuevas mejoras en la plataforma y la lógica, el formato JSON de los cuestionarios se ha extendido. Ahora soporta meta-información adicional, un sistema de puntuación, y etiquetas (tags) por pregunta para una mejor organización.</p>
+
+        <h5>Ejemplo de JSON</h5>
+        <pre class="bg-dark text-light p-3 rounded" style="max-height: 400px; overflow-y: auto;"><code>{
+  "title": "Nombre del Cuestionario o Materia",
+  "description": "Una breve descripción de lo que contiene el archivo (opcional).",
+  "version": "2.0",
+  "questions": [
+    {
+      "id": "q_1001",
+      "type": "single", 
+      "text": "¿Cuál es la capital de Francia?",
+      "feedback": "París es la capital y ciudad más poblada de Francia.",
+      "points": 10,
+      "tags": ["geografía", "europa"],
+      "options": [
+        { "id": "opt_a", "text": "Madrid", "isCorrect": false },
+        { "id": "opt_b", "text": "Londres", "isCorrect": false },
+        { "id": "opt_c", "text": "París", "isCorrect": true },
+        { "id": "opt_d", "text": "Roma", "isCorrect": false }
+      ]
+    },
+    {
+      "id": "q_1002",
+      "type": "multiple",
+      "text": "Selecciona los lenguajes de programación web:",
+      "feedback": "HTML no es un lenguaje de programación propiamente dicho, sino de marcado, aunque a veces se agrupa. Javascript y PHP sí lo son.",
+      "points": 15,
+      "tags": ["programación", "web"],
+      "options": [
+        { "id": "opt_a", "text": "JavaScript", "isCorrect": true },
+        { "id": "opt_b", "text": "PHP", "isCorrect": true },
+        { "id": "opt_c", "text": "HTML", "isCorrect": false }
+      ]
+    },
+    {
+      "id": "q_1003",
+      "type": "boolean",
+      "text": "El sol gira alrededor de la Tierra.",
+      "feedback": "Falso. La Tierra gira alrededor del sol (Heliocentrismo).",
+      "points": 5,
+      "tags": ["astronomía"],
+       "options": [
+         { "id": "opt_t", "text": "Verdadero", "isCorrect": false },
+         { "id": "opt_f", "text": "Falso", "isCorrect": true }
+       ]
+     },
+     {
+       "id": "q_1004",
+       "type": "single",
+       "isCode": true,
+       "text": "function sum(a, b) { return a + b; }\nconsole.log(sum(2, 3));",
+       "feedback": "El código define una función de suma y la llama con 2 y 3, por lo que imprime 5.",
+       "points": 10,
+       "tags": ["programación", "javascript"],
+       "options": [
+         { "id": "opt_a", "text": "3", "isCorrect": false },
+         { "id": "opt_b", "text": "5", "isCorrect": true },
+         { "id": "opt_c", "text": "Error", "isCorrect": false }
+       ]
+     }
+   ]
+ }</code></pre>
+
+        <h5 class="mt-4 text-primary"><i class="fas fa-star"></i> Novedades del Formato v2.0</h5>
+        <ul class="text-muted">
+          <li><strong>Atributos de Raíz</strong>: Ahora puedes incluir un <code>title</code>, <code>description</code>, y <code>version</code> en la raíz del JSON para documentar mejor de qué trata el set de preguntas. La aplicación lo procesará y extraerá las <code>questions</code>.</li>
+          <li><strong>Sistema de Puntos (<code>points</code>)</strong>: Permite asignar diferente peso a las preguntas.</li>
+          <li><strong>Etiquetas (<code>tags</code>)</strong>: Un arreglo de strings para clasificar la pregunta. En futuras actualizaciones de la UI permitirá filtrar sesiones de estudio por tags específicos.</li>
+          <li><strong>Tipos de Pregunta Soportados (<code>type</code>)</strong>:
+            <ul>
+              <li><code>single</code>: Selección única.</li>
+              <li><code>multiple</code>: Selección múltiple.</li>
+              <li><code>boolean</code>: Verdadero/Falso.</li>
+            </ul>
+          </li>
+          <li><strong>Indicador de Código (<code>isCode</code>)</strong>: (Opcional) Un campo booleano que indica si la pregunta contiene código fuente puro. Si es <code>true</code>, el sistema resaltará automáticamente el bloque de texto con estilo de código e incluirá una anotación de la IA.</li>
+        </ul>
+
+        <h5 class="mt-4">Formato XML Soportado</h5>
+        <p>Además del formato JSON, el sistema ha sido actualizado para inyectar archivos <code>.xml</code>. La estructura es muy similar y cuenta con el mismo soporte para Markdown/código en el interior de los nodos:</p>
+        <pre class="bg-dark text-light p-3 rounded" style="max-height: 300px; overflow-y: auto;"><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;quiz&gt;
+    &lt;title&gt;Nombre del Cuestionario o Materia&lt;/title&gt;
+    &lt;question id="q_1001" type="single" points="10"&gt;
+        &lt;text&gt;¿Cuál es la capital de Francia?&lt;/text&gt;
+        &lt;feedback&gt;París es la capital de Francia.&lt;/feedback&gt;
+        &lt;option id="opt_a" isCorrect="false"&gt;Madrid&lt;/option&gt;
+        &lt;option id="opt_b" isCorrect="true"&gt;París&lt;/option&gt;
+    &lt;/question&gt;
+    
+    &lt;question id="q_1002" type="multiple" points="15"&gt;
+        &lt;text&gt;
+            Selecciona los lenguajes de programación web:
+            ```javascript
+            console.log("Soporta código Markdown aquí también");
+            ```
+        &lt;/text&gt;
+        &lt;feedback&gt;HTML es de marcado, los otros sí.&lt;/feedback&gt;
+        &lt;option id="opt_x" isCorrect="true"&gt;JavaScript&lt;/option&gt;
+        &lt;option id="opt_y" isCorrect="false"&gt;HTML&lt;/option&gt;
+    &lt;/question&gt;
+&lt;/quiz&gt;</code></pre>
+        <p class="text-sm text-muted">Nota: <code>points</code>, <code>id</code>, <code>type</code> e <code>isCorrect</code> son atributos XML, mientras que <code>&lt;text&gt;</code>, <code>&lt;feedback&gt;</code> y el valor de <code>&lt;option&gt;</code> son nodos de texto.</p>
+
+        <h5 class="mt-4 text-info"><i class="fas fa-robot"></i> ¿Cómo generar preguntas usando IA?</h5>
+        <p>Puedes utilizar herramientas como ChatGPT, Claude o Gemini para generar estos cuestionarios. Solo copia y pega el siguiente prompt adaptando el tema a lo que necesites:</p>
+        <div class="callout callout-info bg-light">
+          <p class="mb-0 font-italic text-secondary">
+            "Actúa como un profesor experto y crea un cuestionario de 10 preguntas sobre <strong>[INSERTA TU TEMA AQUÍ]</strong>. Genera el resultado estrictamente en formato JSON utilizando la estructura v2.0 que incluye title, description, version y un array de questions. Cada pregunta debe tener id, type (single, multiple, boolean), text, feedback, points, tags y options. Asegúrate de que el JSON sea válido y no incluyas texto adicional fuera del JSON."
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
