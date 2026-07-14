@@ -42,6 +42,7 @@ urlpatterns = [
     # Flashcards
     path('subject/<uuid:subject_id>/flashcards/', views.flashcards_list, name='flashcards_list'),
     path('subject/<uuid:subject_id>/flashcards/create/', views.flashcard_create, name='flashcard_create'),
+    path('subject/<uuid:subject_id>/flashcards/import/', views.flashcards_import, name='flashcards_import'),
     path('flashcard/<uuid:card_id>/review/', views.flashcard_review, name='flashcard_review'),
     path('flashcard/<uuid:card_id>/delete/', views.delete_flashcard, name='delete_flashcard'),
 

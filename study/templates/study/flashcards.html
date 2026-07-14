@@ -11,9 +11,14 @@
 <div class="row mb-3">
   <div class="col-12 d-flex justify-content-between align-items-center">
     <p class="text-muted mb-0">Gestiona y repasa las tarjetas de memoria de este cuaderno.</p>
-    <button class="btn btn-primary" data-toggle="modal" data-target="#exportModal">
-      <i class="fas fa-file-export mr-1"></i> Exportar
-    </button>
+    <div>
+      <button class="btn btn-outline-primary mr-2" data-toggle="modal" data-target="#importModal">
+        <i class="fas fa-file-import mr-1"></i> Importar
+      </button>
+      <button class="btn btn-primary" data-toggle="modal" data-target="#exportModal">
+        <i class="fas fa-file-export mr-1"></i> Exportar
+      </button>
+    </div>
   </div>
 </div>
 
@@ -142,6 +147,29 @@
           <i class="fas fa-copy mr-1"></i> Copiar
         </button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Import -->
+<div class="modal fade" id="importModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title"><i class="fas fa-file-import mr-1"></i> Importar Tarjetas (JSON)</h5>
+        <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+      </div>
+      <form method="post" action="{% url 'study:flashcards_import' subject.id %}">
+        {% csrf_token %}
+        <div class="modal-body">
+          <p>Pega aquí el código JSON (como el generado por la IA) para importar tus tarjetas.</p>
+          <textarea name="json_data" class="form-control text-monospace" rows="10" required placeholder='{ "cards": [ { "front": "A", "back": "B" } ] }'></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary"><i class="fas fa-upload mr-1"></i> Importar</button>
+        </div>
+      </form>
     </div>
   </div>
 </div>

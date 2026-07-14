@@ -789,7 +789,7 @@ def flashcards_list(request, subject_id):
     subject = get_object_or_404(Subject, id=subject_id)
     if not request.user.is_staff and subject.owner != request.user and not subject.is_public:
         return redirect('study:dashboard')
-    cards = Flashcard.objects.filter(subject=subject, owner=request.user).order_by('next_review', 'created_at')
+    cards = Flashcard.objects.filter(subject=subject).order_by('next_review', 'created_at')
     return render(request, 'study/flashcards.html', {'subject': subject, 'cards': cards})
 
 
@@ -816,6 +816,44 @@ def flashcard_create(request, subject_id):
         except Exception as e:
             messages.error(request, f'Error: {str(e)}')
         return redirect('study:flashcards_list', subject_id=subject.id)
+    return redirect('study:flashcards_list', subject_id=subject.id)
+
+
+@csrf_exempt
+@login_required
+def flashcards_import(request, subject_id):
+    subject = get_object_or_404(Subject, id=subject_id)
+    if not request.user.is_staff and subject.owner != request.user:
+        messages.error(request, 'Sin permisos para importar.')
+        return redirect('study:flashcards_list', subject_id=subject.id)
+        
+    if request.method == 'POST':
+        json_data = request.POST.get('json_data', '').strip()
+        try:
+            data = json.loads(json_data)
+            cards_list = data.get('cards', [])
+            if not cards_list:
+                raise ValueError("El JSON no contiene el arreglo 'cards'.")
+                
+            for c in cards_list:
+                diff_val = c.get('difficulty', 0)
+                if isinstance(diff_val, str):
+                    if diff_val.lower() == 'easy': diff_val = 1
+                    elif diff_val.lower() == 'medium': diff_val = 2
+                    elif diff_val.lower() == 'hard': diff_val = 3
+                    else: diff_val = 1
+                    
+                Flashcard.objects.create(
+                    subject=subject,
+                    owner=request.user,
+                    front=c.get('front', ''),
+                    back=c.get('back', ''),
+                    difficulty=diff_val
+                )
+            messages.success(request, f'Se importaron {len(cards_list)} tarjetas exitosamente.')
+        except Exception as e:
+            messages.error(request, f'Error al importar: {str(e)}')
+            
     return redirect('study:flashcards_list', subject_id=subject.id)
 
 

@@ -11,10 +11,6 @@
     display: flex; align-items: center; justify-content: center;
     font-weight: 700; font-size: .9rem; color: #fff; flex-shrink: 0;
   }
-  .user-row:hover { background: #f8f9fa; }
-  .stat-badge { border-radius: 8px; padding: 14px 18px; text-align: center; }
-  .stat-badge .val { font-size: 1.8rem; font-weight: 700; line-height: 1; }
-  .stat-badge .lbl { font-size: .75rem; margin-top: 4px; opacity: .8; }
 </style>
 {% endblock %}
 
@@ -23,27 +19,47 @@
 <!-- Stats Row -->
 <div class="row mb-3">
   <div class="col-sm-3 col-6 mb-2">
-    <div class="stat-badge bg-info text-white">
-      <div class="val">{{ total_users }}</div>
-      <div class="lbl">Total Usuarios</div>
+    <div class="small-box bg-info">
+      <div class="inner">
+        <h3>{{ total_users }}</h3>
+        <p>Total Usuarios</p>
+      </div>
+      <div class="icon">
+        <i class="fas fa-users"></i>
+      </div>
     </div>
   </div>
   <div class="col-sm-3 col-6 mb-2">
-    <div class="stat-badge bg-danger text-white">
-      <div class="val">{{ staff_count }}</div>
-      <div class="lbl">Administradores</div>
+    <div class="small-box bg-danger">
+      <div class="inner">
+        <h3>{{ staff_count }}</h3>
+        <p>Administradores</p>
+      </div>
+      <div class="icon">
+        <i class="fas fa-user-shield"></i>
+      </div>
     </div>
   </div>
   <div class="col-sm-3 col-6 mb-2">
-    <div class="stat-badge bg-success text-white">
-      <div class="val">{{ active_count }}</div>
-      <div class="lbl">Usuarios Activos</div>
+    <div class="small-box bg-success">
+      <div class="inner">
+        <h3>{{ active_count }}</h3>
+        <p>Usuarios Activos</p>
+      </div>
+      <div class="icon">
+        <i class="fas fa-user-check"></i>
+      </div>
     </div>
   </div>
   <div class="col-sm-3 col-6 mb-2">
-    <div class="stat-badge bg-warning text-white">
-      <div class="val">{{ total_users|add:"-"|add:staff_count|add:0 }}</div>
-      <div class="lbl">Estudiantes</div>
+    <div class="small-box bg-warning">
+      <div class="inner">
+        <h3 class="text-white">{{ total_users|add:"-"|add:staff_count|add:0 }}</h3>
+        <p class="text-white">Estudiantes</p>
+      </div>
+      <div class="icon">
+        <i class="fas fa-user-graduate"></i>
+      </div>
     </div>
   </div>
 </div>
@@ -60,7 +76,7 @@
   <div class="card-body p-0">
     <div class="table-responsive">
       <table class="table table-hover mb-0" id="usersTable">
-        <thead class="thead-dark">
+        <thead>
           <tr>
             <th width="40">#</th>
             <th>Usuario</th>
@@ -91,7 +107,7 @@
             <td><small>{{ u.email|default:"—" }}</small></td>
             <td>
               {% if u.is_superuser %}
-                <span class="badge badge-purple" style="background:#605ca8;color:#fff">Superusuario</span>
+                <span class="badge badge-dark">Superusuario</span>
               {% elif u.is_staff %}
                 <span class="badge badge-danger">Admin</span>
               {% else %}
