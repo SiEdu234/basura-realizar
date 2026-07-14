@@ -6,20 +6,6 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
-<style>
-  /* El modal de Cropper necesita que el contenedor defina el tamaño de trabajo */
-  .img-container {
-    width: 100%;
-    height: 60vh; /* Altura relativa a la pantalla */
-    min-height: 300px;
-    background-color: #000;
-  }
-  /* Cropper.js necesita estrictamente que la imagen no tenga un alto máximo para hacer sus cálculos inicialmente */
-  .img-container img {
-    display: block;
-    max-width: 100%; 
-  }
-</style>
 {% endblock %}
 
 {% block content %}
@@ -71,10 +57,10 @@
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
-      <!-- Sin padding para aprovechar todo el espacio -->
       <div class="modal-body p-0">
-        <div class="img-container">
-          <img id="imageToCrop" src="">
+        <!-- Contenedor ultra estricto inline para asegurar que nada interfiere -->
+        <div style="width: 100%; height: 400px; background-color: #000; position: relative; overflow: hidden;">
+          <img id="imageToCrop" src="" style="display: block; max-width: 100%; margin: 0 auto;">
         </div>
       </div>
       <div class="modal-footer">
@@ -90,6 +76,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 <script>
   $(function () {
+    console.log("CROPPER V4 LOADED"); // Para verificar que el JS se actualizó en producción
     var $modal = $('#cropperModal');
     var image = document.getElementById('imageToCrop');
     var cropper = null;
@@ -101,36 +88,29 @@
         var file = files[0];
         $(this).next('.custom-file-label').addClass("selected").html(file.name);
         
-        // El uso de createObjectURL es ultra rápido y evita congelar la pantalla
-        // con imágenes grandes, en lugar de usar FileReader base64.
         var url = URL.createObjectURL(file);
-        
-        // IMPORTANTE: Esperamos a que la imagen original se decodifique y renderice
         image.onload = function() {
-            // Liberar memoria
             URL.revokeObjectURL(url);
-            // Mostrar modal
             $modal.modal('show');
         };
-        
-        // Lanzar la carga
         image.src = url;
-        $input.val(''); // Limpiar para que el change reaccione si elegimos la misma
+        $input.val('');
       }
     });
 
     $modal.on('shown.bs.modal', function () {
-      // Para imágenes 1080p, Cropper calculará sobre el contenedor.
-      cropper = new Cropper(image, {
-        aspectRatio: 1, // Cuadrado perfecto
-        viewMode: 1, // Restringir recorte al tamaño del lienzo
-        autoCropArea: 0.8,
-        dragMode: 'move', // Permite desplazar la imagen
-        ready: function () {
-            // Consola para debug
-            console.log("Cropper is ready.");
-        }
-      });
+      // El timeout es CRUCIAL en Bootstrap para que la animación termine y el canvas tenga width/height real
+      setTimeout(function() {
+        cropper = new Cropper(image, {
+          aspectRatio: 1,
+          viewMode: 1,
+          autoCropArea: 0.8,
+          dragMode: 'move',
+          responsive: true,
+          restore: true,
+          center: true,
+        });
+      }, 150);
     }).on('hidden.bs.modal', function () {
       if (cropper) {
         cropper.destroy();
@@ -141,18 +121,13 @@
 
     $('#cropAndSaveBtn').on('click', function() {
       if (!cropper) return;
-      
-      // Especificamos un lienzo de 400x400 para que la salida NUNCA sea tan grande
-      // como la entrada original, solucionando el problema de peso de red / 413
       var canvas = cropper.getCroppedCanvas({
         width: 400,
         height: 400,
         imageSmoothingEnabled: true,
         imageSmoothingQuality: 'high',
       });
-      
       if (canvas) {
-        // Calidad 0.8 es más que suficiente para un avatar, reduciendo bytes
         var base64data = canvas.toDataURL('image/jpeg', 0.8);
         $('#avatar_base64').val(base64data);
         $input.removeAttr('required');
