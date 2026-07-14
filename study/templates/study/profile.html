@@ -9,15 +9,16 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" />
 <style>
   .img-container {
-    max-height: 400px;
-    min-height: 200px;
     width: 100%;
-    margin-bottom: 20px;
-    background-color: #f8f9fa;
+    height: 60vh; /* Responsive fixed height */
+    min-height: 300px;
+    background-color: #000;
+    overflow: hidden;
   }
   .img-container img {
     display: block;
     max-width: 100%;
+    max-height: 100%;
   }
 </style>
 {% endblock %}
@@ -74,7 +75,8 @@
           <span aria-hidden="true">&times;</span>
         </button>
       </div>
-      <div class="modal-body">
+      <div class="modal-body p-0">
+        <!-- El contenedor DEBE tener altura fija o calculable para evitar que una imagen 1080p lo reviente -->
         <div class="img-container">
           <img id="imageToCrop" src="">
         </div>
@@ -82,7 +84,7 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
         <button type="button" class="btn btn-primary" id="cropAndSaveBtn">
-          <i class="fas fa-crop-alt mr-2"></i> Recortar y Guardar
+          <i class="fas fa-crop-alt mr-2"></i> Guardar Imagen
         </button>
       </div>
     </div>
@@ -97,71 +99,79 @@
   $(function () {
     var $modal = $('#cropperModal');
     var image = document.getElementById('imageToCrop');
-    var cropper;
+    var cropper = null;
     var $input = $('#avatarInput');
 
-    // Cuando el usuario selecciona una imagen
-    $input.on('change', function(e){
+    $input.on('change', function(e) {
       var files = e.target.files;
-      var done = function(url) {
-        $input.val(''); // Limpiamos para poder volver a seleccionar la misma si queremos
-        image.src = url;
-        $modal.modal('show');
-      };
-
       if (files && files.length > 0) {
         var file = files[0];
+        
         // Actualizar el label visualmente
         $(this).next('.custom-file-label').addClass("selected").html(file.name);
         
-        if (URL) {
-          done(URL.createObjectURL(file));
-        } else if (FileReader) {
-          var reader = new FileReader();
-          reader.onload = function(e) {
-            done(reader.result);
-          };
-          reader.readAsDataURL(file);
-        }
+        // Cargar imagen de forma segura
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          // Destruir anterior si existiera
+          if (cropper) {
+            cropper.destroy();
+            cropper = null;
+          }
+          // Asignar base64 de previsualización al img
+          image.src = e.target.result;
+          
+          // Limpiar input por si vuelve a seleccionar el mismo
+          $input.val('');
+          
+          // Mostrar modal. Cropper se inicia en evento shown
+          $modal.modal('show');
+        };
+        reader.readAsDataURL(file);
       }
     });
 
-    // Inicializar Cropper cuando el Modal termine de mostrarse
     $modal.on('shown.bs.modal', function () {
+      // Importante: Inicializar SOLAMENTE cuando la imagen cargó y el modal ya tiene dimensiones reales.
       cropper = new Cropper(image, {
-        aspectRatio: 1, // Cuadrado perfecto (1:1)
-        viewMode: 2,    // Permite mover la imagen
-        autoCropArea: 1,
-        responsive: true,
+        aspectRatio: 1, // 1:1
+        viewMode: 1,    // Restringe el crop box a la caja del canvas
+        dragMode: 'move', // Permite arrastrar la imagen
+        autoCropArea: 0.8,
+        restore: false,
+        guides: true,
+        center: true,
+        highlight: false,
+        cropBoxMovable: true,
+        cropBoxResizable: true,
+        toggleDragModeOnDblclick: false,
       });
     }).on('hidden.bs.modal', function () {
       if (cropper) {
         cropper.destroy();
         cropper = null;
       }
-      image.src = ''; // Limpiar la imagen para evitar bugs visuales
+      image.src = '';
     });
 
-    // Evento de Recortar y Guardar
     $('#cropAndSaveBtn').on('click', function(){
       if (cropper) {
+        // Al darle GetCroppedCanvas especificamos el tamaño SALIENTE deseado (400x400), 
+        // evitando que una imagen original 4K genere un base64 de 15MB
         var canvas = cropper.getCroppedCanvas({
           width: 400,
           height: 400,
+          imageSmoothingEnabled: true,
+          imageSmoothingQuality: 'high',
         });
 
-        // Obtener la imagen en Base64 comprimida (jpg, calidad 0.8)
-        var base64data = canvas.toDataURL('image/jpeg', 0.8);
-
-        // Ponerla en el hidden input
-        $('#avatar_base64').val(base64data);
-        
-        // Quitar el required del input original porque lo mandamos por base64
-        $input.removeAttr('required');
-
-        // Esconder el modal y hacer Submit
-        $modal.modal('hide');
-        $('#avatarForm').submit();
+        if(canvas){
+            var base64data = canvas.toDataURL('image/jpeg', 0.8);
+            $('#avatar_base64').val(base64data);
+            $input.removeAttr('required');
+            $modal.modal('hide');
+            $('#avatarForm').submit();
+        }
       }
     });
   });
