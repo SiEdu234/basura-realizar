@@ -110,6 +110,12 @@
               </div>
             </div>
           </div>
+          {% empty %}
+          <tr><td colspan="9" class="text-center text-muted py-4">No hay páginas creadas.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
 
