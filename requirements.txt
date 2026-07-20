@@ -4,3 +4,4 @@ gunicorn>=21.2.0
 reportlab>=4.0
 Pillow>=10.0
 python-dotenv>=1.0.0
+django-anymail[sendgrid,brevo,resend]>=10.0
