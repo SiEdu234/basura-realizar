@@ -5,9 +5,16 @@ from django.conf.urls.static import static
 from study.views import admin_dashboard
 from study import views as study_views
 
+from django.contrib.auth import views as auth_views
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('accounts/register/', study_views.register_user, name='register'),
+    path('accounts/password_reset/', auth_views.PasswordResetView.as_view(
+        subject_template_name='registration/password_reset_subject.txt',
+        html_email_template_name='registration/password_reset_email.html',
+    ), name='password_reset'),
+    path('accounts/reset/<uidb64>/<token>/', study_views.CustomPasswordResetConfirmView.as_view(), name='password_reset_confirm'),
     path('accounts/', include('django.contrib.auth.urls')),
     path('study/', include('study.urls')),
     path('admin-dashboard/', admin_dashboard, name='admin_dashboard'),

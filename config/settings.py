@@ -116,3 +116,4 @@ ANYMAIL = {
     "RESEND_API_KEY": os.environ.get('RESEND_API_KEY', ''),
 }
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'Study App <onboarding@resend.dev>')
+PASSWORD_RESET_TIMEOUT = 86400  # Expire tokens after 24 hours

@@ -81,6 +81,8 @@ def profile_view(request):
             else:
                 request.user.set_password(password)
                 update_session_auth_hash(request, request.user) # Keep user logged in
+                from study.emails import send_password_changed_alert
+                send_password_changed_alert(request.user)
                 
         request.user.save()
         messages.success(request, '¡Perfil actualizado exitosamente!')
@@ -995,3 +997,14 @@ def format_guide(request):
     if request.user.is_authenticated and request.user.is_staff:
         return redirect('study:dashboard')
     return render(request, 'study/format_guide.html')
+
+from django.contrib.auth.views import PasswordResetConfirmView
+from study.emails import send_password_changed_alert
+
+class CustomPasswordResetConfirmView(PasswordResetConfirmView):
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        # Send alert
+        if self.user:
+            send_password_changed_alert(self.user)
+        return response
