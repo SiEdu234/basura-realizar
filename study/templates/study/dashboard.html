@@ -24,9 +24,9 @@
   </div>
   <div class="col-md-4 text-right">
     {% if user.is_authenticated %}
-    <a href="{% url 'study:create_subject' %}" class="btn btn-primary">
+    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#createSubjectModal">
       <i class="fas fa-plus-circle mr-1"></i> Nuevo Cuaderno
-    </a>
+    </button>
     {% endif %}
   </div>
 </div>
@@ -79,12 +79,46 @@
       <i class="fas fa-folder-open mb-3" style="font-size: 3rem; color: #17a2b8;"></i>
       <h5>No hay cuadernos disponibles</h5>
       <p>No se encontraron materias con el filtro actual.</p>
-      <a href="{% url 'study:create_subject' %}" class="btn btn-primary mt-2">
+      <button type="button" class="btn btn-primary mt-2" data-toggle="modal" data-target="#createSubjectModal">
         <i class="fas fa-plus"></i> Crear el primero
-      </a>
+      </button>
     </div>
   </div>
   {% endfor %}
+</div>
+<!-- Create Subject Modal -->
+<div class="modal fade" id="createSubjectModal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title"><i class="fas fa-plus-circle mr-1"></i> Crear Nuevo Cuaderno</h5>
+        <button type="button" class="close text-white" data-dismiss="modal">
+          <span>&times;</span>
+        </button>
+      </div>
+      <form action="{% url 'study:create_subject' %}" method="post">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Nombre del Cuaderno</label>
+            <input type="text" name="name" class="form-control" required placeholder="Ej: Matemáticas Avanzadas, Biología...">
+          </div>
+          <p class="text-muted small">
+            <i class="fas fa-info-circle mr-1"></i>
+            {% if request.user.is_staff %}
+            Como profesor, este cuaderno será marcado inicialmente como Privado.
+            {% else %}
+            Como estudiante, este cuaderno será exclusivamente tuyo y privado.
+            {% endif %}
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary"><i class="fas fa-save mr-1"></i> Crear Cuaderno</button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
 
 {% endblock %}

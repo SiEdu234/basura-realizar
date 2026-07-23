@@ -33,18 +33,29 @@ def dashboard(request):
             # Los administradores pueden ver todos los cuadernos ordenados por creación
             subjects = Subject.objects.all().select_related('owner').order_by('-created_at')
         else:
-            # Los estudiantes ven los públicos y los que les pertenecen
+            # Los estudiantes ven los oficiales (owner=None), los públicos y los que les pertenecen
             subjects = Subject.objects.filter(
-                Q(owner=request.user) | Q(is_public=True)
+                Q(owner__isnull=True) | Q(owner=request.user) | Q(is_public=True)
             ).select_related('owner').order_by('-created_at')
     else:
         subjects = Subject.objects.filter(
             Q(owner__isnull=True) | Q(is_public=True)
         ).select_related('owner').order_by('-created_at')
 
+    current_filter = request.GET.get('filter', 'all')
+    
+    if current_filter == 'mine' and request.user.is_authenticated:
+        subjects = subjects.filter(owner=request.user)
+    elif current_filter == 'public':
+        subjects = subjects.filter(Q(owner__isnull=True) | Q(is_public=True))
+
     # Published custom pages for nav
     nav_pages = CustomPage.objects.filter(is_published=True, show_in_nav=True).order_by('title')
-    return render(request, 'study/dashboard.html', {'subjects': subjects, 'nav_pages': nav_pages})
+    return render(request, 'study/dashboard.html', {
+        'subjects': subjects, 
+        'nav_pages': nav_pages, 
+        'current_filter': current_filter
+    })
 
 
 
