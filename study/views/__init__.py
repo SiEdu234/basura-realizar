@@ -7,3 +7,4 @@ from .quiz import *
 from .reports import *
 from .users import *
 from .utils import *
+from .subjects import *
