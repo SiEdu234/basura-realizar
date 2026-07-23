@@ -159,7 +159,7 @@
           if (limit < pool.length) pool = pool.slice(0, limit);
       }
 
-      pool.forEach(q => { if (q.options) q.options = shuffleArray(q.options); });
+      pool.forEach(q => { if (q.options && Array.isArray(q.options)) q.options = shuffleArray(q.options); });
 
       state.sessionQuestions = pool;
       state.currentQuestionIndex = 0;
@@ -205,14 +205,14 @@
           ${aiNoteHtml}
           <div class="q-text mb-4" style="font-size: 1.1rem;">${questionTextHtml}</div>
           <div class="opts-grid row">
-              ${q.options.map((opt, i) => `
+              ${(q.options && Array.isArray(q.options)) ? q.options.map((opt, i) => `
                   <div class="${q.options.length <= 2 ? 'col-md-6' : 'col-12'}">
                     <div class="opt-box" data-id="${opt.id}">
                         <div class="opt-idx">${String.fromCharCode(65 + i)}</div>
                         <div class="opt-txt">${parseMdInline(opt.text)}</div>
                     </div>
                   </div>
-              `).join('')}
+              `).join('') : '<div class="col-12"><div class="alert alert-info">Esta pregunta no tiene opciones seleccionables (formato no soportado). Puedes marcarla como respondida y avanzar.</div></div>'}
           </div>
           <div id="feedback-area"></div>
       `;
@@ -243,16 +243,26 @@
 
   function checkAnswer() {
       const q = state.sessionQuestions[state.currentQuestionIndex];
-      if (state.userAnswers.length === 0) {
+      const hasOptions = q.options && Array.isArray(q.options) && q.options.length > 0;
+
+      if (hasOptions && state.userAnswers.length === 0) {
           alert('Por favor selecciona una respuesta');
           return;
       }
 
-      const correctIds = q.options.filter(o => o.isCorrect).map(o => o.id);
       let isCorrect = false;
-      if (correctIds.length === 0) isCorrect = state.userAnswers.length === 0;
-      else if (state.userAnswers.length === correctIds.length) {
-          isCorrect = state.userAnswers.every(ans => correctIds.includes(ans));
+      let correctIds = [];
+
+      if (hasOptions) {
+          correctIds = q.options.filter(o => o.isCorrect).map(o => o.id);
+          if (correctIds.length === 0) {
+              isCorrect = state.userAnswers.length === 0;
+          } else if (state.userAnswers.length === correctIds.length) {
+              isCorrect = state.userAnswers.every(ans => correctIds.includes(ans));
+          }
+      } else {
+          // Si la pregunta no tiene opciones, la damos por incorrecta (o manual) para no trabar
+          isCorrect = false;
       }
 
       if (!state.isAnswerSubmitted) {
@@ -309,10 +319,13 @@
 
       let html = '<div>';
       state.sessionQuestions.forEach((q, i) => {
-          const correctOpts = q.options.filter(o => o.isCorrect);
-          const correctText = correctOpts.length > 0 
-              ? correctOpts.map(o => `&bull; ${parseMdInline(o.text)}`).join('<br>') 
-              : "N/A";
+          let correctText = "No hay opciones registradas";
+          if (q.options && Array.isArray(q.options)) {
+              const correctOpts = q.options.filter(o => o.isCorrect);
+              if (correctOpts.length > 0) {
+                  correctText = correctOpts.map(o => `&bull; ${parseMdInline(o.text)}`).join('<br>');
+              }
+          }
 
           let questionTextHtml = parseMd(q.text);
           if (q.isCode && !q.text.trim().startsWith('```')) {

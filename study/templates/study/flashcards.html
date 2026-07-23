@@ -11,6 +11,7 @@
 <div class="row mb-3">
   <div class="col-12 d-flex justify-content-between align-items-center">
     <p class="text-muted mb-0">Gestiona y repasa las tarjetas de memoria de este cuaderno.</p>
+    {% if request.user == subject.owner or request.user.is_staff %}
     <div>
       <button class="btn btn-outline-primary mr-2" data-toggle="modal" data-target="#importModal">
         <i class="fas fa-file-import mr-1"></i> Importar
@@ -19,6 +20,7 @@
         <i class="fas fa-file-export mr-1"></i> Exportar
       </button>
     </div>
+    {% endif %}
   </div>
 </div>
 
@@ -62,6 +64,7 @@
 
   <!-- Create Card Form -->
   <div class="col-lg-6 mb-4">
+    {% if request.user == subject.owner or request.user.is_staff %}
     <div class="card card-success card-outline h-100">
       <div class="card-header">
         <h5 class="card-title"><i class="fas fa-plus-circle mr-1"></i> Nueva Tarjeta</h5>
@@ -83,6 +86,15 @@
         </div>
       </form>
     </div>
+    {% else %}
+    <div class="card card-success card-outline h-100">
+      <div class="card-body d-flex flex-column justify-content-center align-items-center text-center text-muted">
+        <i class="fas fa-lock fa-3x mb-3"></i>
+        <h5>Modo Lectura</h5>
+        <p>Solo el profesor puede crear nuevas tarjetas aquí.</p>
+      </div>
+    </div>
+    {% endif %}
   </div>
 </div>
 
@@ -113,10 +125,12 @@
             {% else %}<span class="badge badge-info">Nueva</span>{% endif %}
           </td>
           <td class="text-right">
+            {% if request.user == subject.owner or request.user.is_staff %}
             <form method="post" action="{% url 'study:delete_flashcard' card.id %}" style="display:inline;" onsubmit="return confirm('¿Eliminar tarjeta?');">
               {% csrf_token %}
               <button type="submit" class="btn btn-danger btn-sm"><i class="fas fa-trash"></i></button>
             </form>
+            {% endif %}
           </td>
         </tr>
         {% empty %}
